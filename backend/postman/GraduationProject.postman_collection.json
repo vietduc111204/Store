@@ -1,0 +1,279 @@
+{
+  "info": {
+    "name": "GraduationProject API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5001/api" },
+    { "key": "accessToken", "value": "" },
+    { "key": "categoryId", "value": "1" },
+    { "key": "productId", "value": "1" },
+    { "key": "promotionId", "value": "1" },
+    { "key": "customerId", "value": "1" },
+    { "key": "employeeId", "value": "1" },
+    { "key": "orderId", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/../health"
+      }
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Sign up customer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"postman_customer@example.com\",\n  \"password\": \"123456\",\n  \"tenThanhVien\": \"Khach Postman\",\n  \"soDienThoai\": \"0900000000\",\n  \"diaChi\": \"Ha Noi\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/signup"
+          }
+        },
+        {
+          "name": "Sign in",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.accessToken) pm.collectionVariables.set('accessToken', json.accessToken);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"quanly1@smarthome.vn\",\n  \"password\": \"123456\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/signin"
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/auth/me"
+          }
+        },
+        {
+          "name": "Refresh",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/refresh"
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/logout"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Danh muc",
+      "item": [
+        { "name": "List/Search", "request": { "method": "GET", "url": "{{baseUrl}}/danh-muc/tim-kiem?q=" } },
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"tenDanhMuc\": \"Danh muc Postman\"\n}" },
+            "url": "{{baseUrl}}/danh-muc/them"
+          }
+        },
+        {
+          "name": "Update",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"tenDanhMuc\": \"Danh muc Postman updated\"\n}" },
+            "url": "{{baseUrl}}/danh-muc/sua/{{categoryId}}"
+          }
+        },
+        { "name": "Delete", "request": { "method": "DELETE", "url": "{{baseUrl}}/danh-muc/xoa/{{categoryId}}" } }
+      ]
+    },
+    {
+      "name": "San pham",
+      "item": [
+        { "name": "List/Search", "request": { "method": "GET", "url": "{{baseUrl}}/san-pham/tim-kiem?q=" } },
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenSanPham\": \"San pham Postman\",\n  \"gia\": 150000,\n  \"soLuong\": 10,\n  \"anh\": \"\",\n  \"maDanhMuc\": {{categoryId}},\n  \"maKhuyenMai\": null\n}"
+            },
+            "url": "{{baseUrl}}/san-pham/them"
+          }
+        },
+        {
+          "name": "Update",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenSanPham\": \"San pham Postman updated\",\n  \"gia\": 175000,\n  \"soLuong\": 20,\n  \"anh\": \"\",\n  \"maDanhMuc\": null,\n  \"maKhuyenMai\": null\n}"
+            },
+            "url": "{{baseUrl}}/san-pham/sua/{{productId}}"
+          }
+        },
+        { "name": "Delete", "request": { "method": "DELETE", "url": "{{baseUrl}}/san-pham/xoa/{{productId}}" } }
+      ]
+    },
+    {
+      "name": "Khuyen mai",
+      "item": [
+        { "name": "List/Search", "request": { "method": "GET", "url": "{{baseUrl}}/khuyen-mai/tim-kiem?q=" } },
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"tenKhuyenMai\": \"Giam Postman\",\n  \"phanTramGiam\": 10\n}" },
+            "url": "{{baseUrl}}/khuyen-mai/them"
+          }
+        },
+        {
+          "name": "Update",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"tenKhuyenMai\": \"Giam Postman updated\",\n  \"phanTramGiam\": 15\n}" },
+            "url": "{{baseUrl}}/khuyen-mai/sua/{{promotionId}}"
+          }
+        },
+        { "name": "Delete", "request": { "method": "DELETE", "url": "{{baseUrl}}/khuyen-mai/xoa/{{promotionId}}" } }
+      ]
+    },
+    {
+      "name": "Khach hang + Tai khoan",
+      "item": [
+        { "name": "List/Search", "request": { "method": "GET", "url": "{{baseUrl}}/tai-khoan/khach-hang/tim-kiem?q=" } },
+        {
+          "name": "Create customer account",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenKhachHang\": \"Khach hang Postman\",\n  \"soDienThoai\": \"0911111111\",\n  \"email\": \"khach_postman@example.com\",\n  \"diaChi\": \"TP HCM\",\n  \"password\": \"123456\"\n}"
+            },
+            "url": "{{baseUrl}}/tai-khoan/khach-hang/them"
+          }
+        },
+        {
+          "name": "Update customer",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenKhachHang\": \"Khach hang Postman updated\",\n  \"soDienThoai\": \"0922222222\",\n  \"email\": \"khach_postman_updated@example.com\",\n  \"diaChi\": \"Da Nang\",\n  \"maQuyen\": 3\n}"
+            },
+            "url": "{{baseUrl}}/tai-khoan/khach-hang/sua/{{customerId}}"
+          }
+        },
+        { "name": "Delete customer", "request": { "method": "DELETE", "url": "{{baseUrl}}/tai-khoan/khach-hang/xoa/{{customerId}}" } }
+      ]
+    },
+    {
+      "name": "Nhan vien + Tai khoan",
+      "item": [
+        { "name": "List/Search", "request": { "method": "GET", "url": "{{baseUrl}}/tai-khoan/nhan-vien/tim-kiem?q=" } },
+        {
+          "name": "Create employee account",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenNhanVien\": \"Nhan vien Postman\",\n  \"soDienThoai\": \"0933333333\",\n  \"diaChi\": \"TP HCM\",\n  \"email\": \"nhanvien_postman@example.com\",\n  \"password\": \"123456\"\n}"
+            },
+            "url": "{{baseUrl}}/tai-khoan/nhan-vien/them"
+          }
+        },
+        {
+          "name": "Update employee",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenNhanVien\": \"Nhan vien Postman updated\",\n  \"soDienThoai\": \"0944444444\",\n  \"diaChi\": \"Ha Noi\",\n  \"maQuyen\": 2\n}"
+            },
+            "url": "{{baseUrl}}/tai-khoan/nhan-vien/sua/{{employeeId}}"
+          }
+        },
+        { "name": "Delete employee", "request": { "method": "DELETE", "url": "{{baseUrl}}/tai-khoan/nhan-vien/xoa/{{employeeId}}" } }
+      ]
+    },
+    {
+      "name": "Don hang",
+      "item": [
+        { "name": "List/Search", "request": { "method": "GET", "url": "{{baseUrl}}/don-hang/tim-kiem?q=" } },
+        { "name": "Details", "request": { "method": "GET", "url": "{{baseUrl}}/don-hang/{{orderId}}/chi-tiet" } },
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"maKhachHang\": {{customerId}},\n  \"maSanPham\": {{productId}},\n  \"soLuong\": 1,\n  \"maKhuyenMai\": null,\n  \"trangThai\": \"Mới tạo\"\n}"
+            },
+            "url": "{{baseUrl}}/don-hang/them"
+          }
+        },
+        {
+          "name": "Update",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"maKhachHang\": {{customerId}},\n  \"maKhuyenMai\": null,\n  \"trangThai\": \"Đang xử lý\"\n}"
+            },
+            "url": "{{baseUrl}}/don-hang/sua/{{orderId}}"
+          }
+        },
+        {
+          "name": "Update status",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"trangThai\": \"Hoàn thành\"\n}" },
+            "url": "{{baseUrl}}/don-hang/cap-nhat-trang-thai/{{orderId}}"
+          }
+        },
+        { "name": "Cancel", "request": { "method": "PATCH", "url": "{{baseUrl}}/don-hang/huy/{{orderId}}" } }
+      ]
+    },
+    {
+      "name": "Thong ke",
+      "item": [
+        { "name": "Doanh thu", "request": { "method": "GET", "url": "{{baseUrl}}/thong-ke/doanh-thu" } },
+        { "name": "San pham", "request": { "method": "GET", "url": "{{baseUrl}}/thong-ke/san-pham" } }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/server.js",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.21.0"
+  },
+  "scripts": {
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
+    "accounts:inspect": "node scripts/inspectAccounts.js",
+    "accounts:sync": "node scripts/syncAccounts.js",
+    "db:inspect": "node scripts/inspectConnection.js"
+  },
+  "type": "module",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "cloudinary": "^2.10.0",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "install": "^0.13.0",
+    "multer": "^2.1.1",
+    "nodemon": "^3.1.14",
+    "npm": "^11.14.1",
+    "pg": "^8.21.0",
+    "socket.io": "^4.8.3",
+    "swagger-ui-express": "^5.0.1"
+  }
+}
