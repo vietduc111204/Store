@@ -53,4 +53,6 @@ export type CustomerOrderDetail = {
   anh?: string | null;
   tenKhuyenMai?: string | null;
   phanTramGiam?: string | number | null;
+  ngayBatDau?: string | null;
+  ngayKetThuc?: string | null;
 };

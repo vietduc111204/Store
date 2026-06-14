@@ -5,12 +5,14 @@ const OrderHistoryCard = ({
   details,
   onCancel,
   onBuyAgain,
+  onViewDetail,
   onViewCancelDetail,
   order,
 }: {
   details: CustomerOrderDetail[];
   onCancel: (order: CustomerOrder) => void;
   onBuyAgain: (order: CustomerOrder) => void;
+  onViewDetail: (order: CustomerOrder) => void;
   onViewCancelDetail: (order: CustomerOrder) => void;
   order: CustomerOrder;
 }) => {
@@ -20,15 +22,11 @@ const OrderHistoryCard = ({
   const completed = normalized === "hoàn thành" || normalized === "đã thanh toán";
   const canCancel = normalized === "mới tạo" || normalized === "đang xử lý" || normalized === "chờ thanh toán";
   const statusText = cancelled ? "Đã hủy" : completed ? "Giao hàng thành công | Hoàn thành" : status;
-  const orderedAt = order.createdAt || order.thoiGian;
-  const orderDate = orderedAt ? new Date(orderedAt).toLocaleDateString("vi-VN") : null;
-
   return (
     <article className="overflow-hidden rounded-lg bg-white ring-1 ring-slate-200">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3">
         <div>
           <p className="text-sm font-black text-slate-950">Đơn hàng DH-{order.maDonHang}</p>
-          {orderDate ? <p className="mt-1 text-xs font-semibold text-slate-500">Ngày đặt: {orderDate}</p> : null}
         </div>
         <span className={cancelled ? "text-sm font-black uppercase text-red-700" : "text-sm font-black uppercase text-[#075f83]"}>
           {statusText}
@@ -74,7 +72,7 @@ const OrderHistoryCard = ({
         </button>
         <button
           className="rounded-lg border border-slate-300 px-6 py-3 text-sm font-bold text-slate-800"
-          onClick={() => (cancelled ? onViewCancelDetail(order) : undefined)}
+          onClick={() => (cancelled ? onViewCancelDetail(order) : onViewDetail(order))}
           type="button"
         >
           {cancelled ? "Xem chi tiết hủy đơn" : "Xem chi tiết"}

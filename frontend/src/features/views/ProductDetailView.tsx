@@ -10,6 +10,7 @@ import { discountPercent, fallbackImages, finalPrice, formatMoney, productImage 
 import { EmptyState } from "../components/EmptyState";
 import { ProductCard } from "../components/ProductCard";
 import { SectionTitle } from "../components/SectionTitle";
+import { AiAdvisor } from "../components/AiAdvisor";
 
 type ProductSpec = {
   label: string;
@@ -592,17 +593,25 @@ export const ProductDetailView = ({ onAdd, products }: { onAdd: (product: Produc
               </p>
             ))}
           </div>
-          <div className="rounded-lg bg-[#0879c9] p-6 text-white">
-            <h3 className="text-lg font-black">Bạn cần hỗ trợ lắp đặt?</h3>
-            <p className="mt-3 text-sm text-white/85">Đội ngũ kỹ thuật SmartHome sẵn sàng hỗ trợ bạn 24/7.</p>
-            <button className="mt-5 rounded-md bg-white px-4 py-3 text-sm font-black text-[#075f83]">Đặt lịch tư vấn</button>
-          </div>
         </aside>
       </section>
       <section className="mt-16">
         <SectionTitle eyebrow="Sản phẩm liên quan" title="Các thiết bị phối hợp hoàn hảo" link="/san-pham" />
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">{related.map((item, index) => <ProductCard compact index={index} key={item.maSanPham} onAdd={onAdd} product={item} />)}</div>
       </section>
+
+      <AiAdvisor
+        product={{
+          maSanPham: product.maSanPham,
+          tenSanPham: product.tenSanPham,
+          tenDanhMuc: product.tenDanhMuc,
+          gia: product.gia,
+          giaSauGiam: finalPrice(product),
+          soLuong: product.soLuong,
+          soLuongDaBan: product.soLuongDaBan,
+          specs,
+        }}
+      />
     </main>
   );
 };

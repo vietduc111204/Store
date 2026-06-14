@@ -8,11 +8,14 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import type { CartItem, CustomerOrder, CustomerOrderDetail, Product, Promotion } from "@/types/customer";
 import AccountNoticeList from "../customer-account/AccountNoticeList";
 import CancelDetailDialog from "../customer-account/CancelDetailDialog";
+import OrderDetailDialog from "../customer-account/OrderDetailDialog";
 import OrderHistoryCard from "../customer-account/OrderHistoryCard";
 import ProfileField from "../customer-account/ProfileField";
 import PromotionList from "../customer-account/PromotionList";
 import { readSeenBadges, writeSeenBadges, type SeenBadges } from "../customer-account/accountUtils";
 import { readCart, readFavoriteCategories, writeCart, type FavoriteCategory } from "../utils";
+
+const ORDERS_PER_PAGE = 5;
 
 export const CustomerAccountView = () => {
   const user = useAuthStore((state) => state.user);
@@ -21,6 +24,7 @@ export const CustomerAccountView = () => {
   const navigate = useNavigate();
   const [active, setActive] = useState("orders");
   const [orderTab, setOrderTab] = useState("all");
+  const [orderPage, setOrderPage] = useState(1);
   const [orders, setOrders] = useState<CustomerOrder[]>([]);
   const [orderDetails, setOrderDetails] = useState<Record<number, CustomerOrderDetail[]>>({});
   const [loadingOrders, setLoadingOrders] = useState(false);
@@ -28,6 +32,7 @@ export const CustomerAccountView = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [favoriteCategories, setFavoriteCategories] = useState<FavoriteCategory[]>([]);
   const [loadingPromotions, setLoadingPromotions] = useState(false);
+  const [detailOrder, setDetailOrder] = useState<CustomerOrder | null>(null);
   const [cancelDetailOrder, setCancelDetailOrder] = useState<CustomerOrder | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
@@ -136,6 +141,17 @@ export const CustomerAccountView = () => {
     if (orderTab === "cancelled") return status === "đã hủy";
     return true;
   });
+  const totalOrderPages = Math.max(1, Math.ceil(visibleOrders.length / ORDERS_PER_PAGE));
+  const currentOrderPage = Math.min(orderPage, totalOrderPages);
+  const paginatedOrders = visibleOrders.slice((currentOrderPage - 1) * ORDERS_PER_PAGE, currentOrderPage * ORDERS_PER_PAGE);
+
+  useEffect(() => {
+    setOrderPage(1);
+  }, [orderTab]);
+
+  useEffect(() => {
+    if (orderPage > totalOrderPages) setOrderPage(totalOrderPages);
+  }, [orderPage, totalOrderPages]);
 
   const cancelCustomerOrder = async (order: CustomerOrder) => {
     if (!window.confirm(`Bạn chắc chắn muốn hủy đơn hàng DH-${order.maDonHang}?`)) return;
@@ -345,7 +361,7 @@ export const CustomerAccountView = () => {
           </div>
         </aside>
 
-        <section className="min-h-[520px] rounded-lg bg-white p-6 ring-1 ring-slate-200">
+        <section className="min-h-130 rounded-lg bg-white p-6 ring-1 ring-slate-200">
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-5">
             <div>
               <h1 className="text-lg font-black text-slate-950">{activeLabel}</h1>
@@ -440,7 +456,10 @@ export const CustomerAccountView = () => {
                   <button
                     className={orderTab === tab.key ? "border-b-2 border-[#0879a8] px-4 py-4 text-[#075f83]" : "px-4 py-4 hover:bg-slate-50"}
                     key={tab.key}
-                    onClick={() => setOrderTab(tab.key)}
+                    onClick={() => {
+                      setOrderTab(tab.key);
+                      setOrderPage(1);
+                    }}
                     type="button"
                   >
                     {tab.label}
@@ -449,20 +468,65 @@ export const CustomerAccountView = () => {
               </div>
 
               {visibleOrders.length ? (
-                <div className="mt-5 grid gap-5">
-                  {visibleOrders.map((order) => (
-                    <OrderHistoryCard
-                      details={orderDetails[order.maDonHang] || []}
-                      key={order.maDonHang}
-                      onCancel={cancelCustomerOrder}
-                      onBuyAgain={buyAgain}
-                      onViewCancelDetail={setCancelDetailOrder}
-                      order={order}
-                    />
-                  ))}
-                </div>
+                <>
+                  <div className="mt-5 grid gap-5">
+                    {paginatedOrders.map((order) => (
+                      <OrderHistoryCard
+                        details={orderDetails[order.maDonHang] || []}
+                        key={order.maDonHang}
+                        onCancel={cancelCustomerOrder}
+                        onBuyAgain={buyAgain}
+                        onViewDetail={setDetailOrder}
+                        onViewCancelDetail={setCancelDetailOrder}
+                        order={order}
+                      />
+                    ))}
+                  </div>
+                  {totalOrderPages > 1 ? (
+                    <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-5">
+                      <p className="text-sm font-semibold text-slate-500">
+                        Hiển thị {(currentOrderPage - 1) * ORDERS_PER_PAGE + 1}-{Math.min(currentOrderPage * ORDERS_PER_PAGE, visibleOrders.length)} trong {visibleOrders.length} đơn hàng
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          className="inline-flex size-10 items-center justify-center rounded-lg border border-slate-200 text-sm font-black text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                          disabled={currentOrderPage === 1}
+                          onClick={() => setOrderPage((page) => Math.max(1, page - 1))}
+                          type="button"
+                        >
+                          &lt;
+                        </button>
+                        {Array.from({ length: totalOrderPages }).map((_, index) => {
+                          const page = index + 1;
+                          return (
+                            <button
+                              className={
+                                page === currentOrderPage
+                                  ? "size-10 rounded-lg bg-[#0879a8] text-sm font-black text-white"
+                                  : "size-10 rounded-lg border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50"
+                              }
+                              key={page}
+                              onClick={() => setOrderPage(page)}
+                              type="button"
+                            >
+                              {page}
+                            </button>
+                          );
+                        })}
+                        <button
+                          className="inline-flex size-10 items-center justify-center rounded-lg border border-slate-200 text-sm font-black text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                          disabled={currentOrderPage === totalOrderPages}
+                          onClick={() => setOrderPage((page) => Math.min(totalOrderPages, page + 1))}
+                          type="button"
+                        >
+                          &gt;
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+                </>
               ) : (
-                <div className="flex min-h-[320px] flex-col items-center justify-center text-center">
+                <div className="flex min-h-80 flex-col items-center justify-center text-center">
                   <div className="flex size-20 items-center justify-center rounded-full bg-sky-50 text-[#0879a8] ring-8 ring-sky-100/70">
                     {loadingOrders ? <Package size={30} /> : <ClipboardCheck size={32} />}
                   </div>
@@ -475,7 +539,7 @@ export const CustomerAccountView = () => {
               )}
             </div>
           ) : (
-            <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
+            <div className="flex min-h-90 flex-col items-center justify-center text-center">
               <div className="flex size-24 items-center justify-center rounded-full bg-sky-50 text-[#0879a8] ring-8 ring-sky-100/70">
                 {loadingOrders ? <Package size={34} /> : <ClipboardCheck size={36} />}
               </div>
@@ -493,6 +557,13 @@ export const CustomerAccountView = () => {
           details={orderDetails[cancelDetailOrder.maDonHang] || []}
           onClose={() => setCancelDetailOrder(null)}
           order={cancelDetailOrder}
+        />
+      ) : null}
+      {detailOrder ? (
+        <OrderDetailDialog
+          details={orderDetails[detailOrder.maDonHang] || []}
+          onClose={() => setDetailOrder(null)}
+          order={detailOrder}
         />
       ) : null}
     </main>
