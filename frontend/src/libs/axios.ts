@@ -1,9 +1,16 @@
 import { useAuthStore } from "@/stores/useAuthStore";
 import axios from "axios";
 
+const getBaseURL = () => {
+  if (import.meta.env.MODE === "development") {
+    return "http://localhost:5001/api";
+  }
+  // Production: use VITE_API_URL from .env.production, fallback to relative path
+  return import.meta.env.VITE_API_URL || "/api";
+};
+
 const api = axios.create({
-  baseURL:
-    import.meta.env.MODE === "development" ? "http://localhost:5001/api" : "/api",
+  baseURL: getBaseURL(),
   withCredentials: true,
 });
 
