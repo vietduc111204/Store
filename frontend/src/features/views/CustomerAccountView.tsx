@@ -1,4 +1,4 @@
-﻿import { ArrowRight, Bell, ClipboardCheck, Gift, LockKeyhole, Package, UserRound } from "lucide-react";
+﻿import { ArrowRight, Bell, ClipboardCheck, Gift, LockKeyhole, LogOut, Package, UserRound } from "lucide-react";
 import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
@@ -20,6 +20,7 @@ const ORDERS_PER_PAGE = 5;
 export const CustomerAccountView = () => {
   const user = useAuthStore((state) => state.user);
   const updateUser = useAuthStore((state) => state.updateUser);
+  const signOut = useAuthStore((state) => state.signOut);
   const location = useLocation();
   const navigate = useNavigate();
   const [active, setActive] = useState("orders");
@@ -293,6 +294,12 @@ export const CustomerAccountView = () => {
     }
   };
 
+  const handleLogout = async () => {
+    if (!window.confirm("Bạn chắc chắn muốn đăng xuất?")) return;
+    await signOut();
+    navigate("/signin", { replace: true });
+  };
+
   const notificationBadge = Math.max(0, notificationCount - seenBadges.notifications);
   const promotionBadge = Math.max(0, promotions.length - seenBadges.promotions);
   const hasUnseenNewOrder = newOrderCount > seenBadges.orders;
@@ -359,6 +366,15 @@ export const CustomerAccountView = () => {
               );
             })}
           </div>
+
+          <button
+            className="mt-5 flex w-full items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-left text-sm font-bold text-red-600 hover:bg-red-100"
+            onClick={handleLogout}
+            type="button"
+          >
+            <LogOut size={17} />
+            <span className="flex-1">Đăng xuất</span>
+          </button>
         </aside>
 
         <section className="min-h-130 rounded-lg bg-white p-6 ring-1 ring-slate-200">
