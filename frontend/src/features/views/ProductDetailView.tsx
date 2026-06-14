@@ -604,11 +604,11 @@ export const ProductDetailView = ({ onAdd, products }: { onAdd: (product: Produc
         product={{
           maSanPham: product.maSanPham,
           tenSanPham: product.tenSanPham,
-          tenDanhMuc: product.tenDanhMuc,
-          gia: product.gia,
+          tenDanhMuc: product.tenDanhMuc || "",
+          gia: Number(product.gia) || 0,
           giaSauGiam: finalPrice(product),
           soLuong: product.soLuong,
-          soLuongDaBan: product.soLuongDaBan,
+          soLuongDaBan: Number(product.soLuongDaBan) || 0,
           specs,
         }}
       />

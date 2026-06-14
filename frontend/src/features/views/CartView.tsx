@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { toast } from "sonner";
+import axios from "axios";
 import api from "@/libs/axios";
 import { useAuthStore } from "@/stores/useAuthStore";
 import type { CartItem, Promotion } from "@/types/customer";
@@ -64,7 +65,8 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
       navigate("/khach-hang", { state: { accountSection: "orders" } });
     } catch (error) {
       console.error(error);
-      toast.error("Không tạo được đơn hàng");
+      const message = axios.isAxiosError<{ message?: string }>(error) ? error.response?.data?.message : "";
+      toast.error(message || "Không tạo được đơn hàng");
     }
   };
 

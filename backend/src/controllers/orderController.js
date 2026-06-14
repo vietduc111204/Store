@@ -143,11 +143,6 @@ export const createOrder = async (req, res) => {
     const rawDetails = items.length ? await calculateOrderItems(client, items) : [];
     const maKhuyenMai = req.body.maKhuyenMai || null;
 
-    if (maKhuyenMai && rawDetails.some((detail) => Number(detail.phanTramGiam || 0) > 0)) {
-      await client.query('rollback');
-      return res.status(400).json({ message: 'Sản phẩm đã có khuyến mãi, không được áp dụng khuyến mãi đơn hàng' });
-    }
-
     const phanTramGiamDonHang = await getOrderDiscountPercent(client, maKhuyenMai);
     const details = applyOrderDiscount(rawDetails, phanTramGiamDonHang);
     const tongGia = details.length
@@ -188,10 +183,6 @@ export const updateOrder = async (req, res) => {
 
   try {
     const maKhuyenMai = req.body.maKhuyenMai || null;
-
-    if (maKhuyenMai && (await orderHasProductDiscount(client, req.params.id))) {
-      return res.status(400).json({ message: 'Sản phẩm đã có khuyến mãi, không được áp dụng khuyến mãi đơn hàng' });
-    }
 
     const columns = ['tongGia', 'trangThai', 'maKhachHang', 'maKhuyenMai'].filter((column) =>
       Object.prototype.hasOwnProperty.call(req.body, column)
