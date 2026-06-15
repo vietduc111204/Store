@@ -26,7 +26,7 @@ app.use('/api', databaseRoute);
 app.get('/health', async (req, res) => {
   try {
     const result = await pool.query('select now()');
-    res.json({ status: 'ok', now: result.rows[0].now });
+    res.json({ status: 'ok', now: result.rows[0].now, features: { promotionProductAssignments: true } });
   } catch (error) {
     console.error('DB health check failed:', error);
     res.status(500).json({ status: 'error', error: error.message });
