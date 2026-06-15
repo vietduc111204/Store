@@ -289,7 +289,11 @@ export const useManagementForms = ({
       mode,
       submitLabel: mode === "create" ? "Thêm" : "Lưu",
       fields: [
-        { name: "tenKhuyenMai", label: "Tên khuyến mãi" },
+        {
+          name: "tenKhuyenMai",
+          label: "Tên khuyến mãi",
+          helperText: "Sau khi tạo mã, gắn mã này trong form sản phẩm để chỉ áp dụng cho các sản phẩm được chọn.",
+        },
         { name: "phanTramGiam", label: "Phần trăm giảm", type: "number", min: 0, max: 100 },
         { name: "ngayBatDau", label: "Ngày bắt đầu", type: "date" },
         { name: "ngayKetThuc", label: "Ngày kết thúc", type: "date" },

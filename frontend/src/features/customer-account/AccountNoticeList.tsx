@@ -62,8 +62,9 @@ const AccountNoticeList = ({
               <p className="text-xs font-black uppercase text-[#075f83]">Mã giảm giá mới</p>
               <h2 className="mt-2 text-lg font-black text-slate-950">{promotion.tenKhuyenMai}</h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Bạn có mã khuyến mãi giảm {Number(promotion.phanTramGiam || 0)}% đang khả dụng cho đơn hàng.
+                Mã khuyến mãi giảm {Number(promotion.phanTramGiam || 0)}% chỉ áp dụng cho các sản phẩm được gắn mã này.
               </p>
+              {promotion.sanPhamApDung ? <p className="mt-2 text-sm font-semibold text-slate-600">Sản phẩm áp dụng: {promotion.sanPhamApDung}</p> : null}
               <p className="mt-2 text-sm font-semibold text-slate-500">Hạn dùng: {promotionDateText(promotion)}</p>
               <div className="mt-3 inline-flex items-center gap-2 rounded-md bg-white px-3 py-2 text-sm font-black text-[#075f83] ring-1 ring-sky-100">
                 <span className="text-slate-500">Mã khuyến mãi</span>

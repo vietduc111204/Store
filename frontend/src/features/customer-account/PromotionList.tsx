@@ -20,6 +20,9 @@ const PromotionList = ({ loading, promotions }: { loading: boolean; promotions: 
           </div>
           <h2 className="mt-5 text-lg font-black text-slate-950">{promotion.tenKhuyenMai}</h2>
           <p className="mt-2 text-sm font-semibold text-slate-500">Hạn dùng: {promotionDateText(promotion)}</p>
+          <p className="mt-2 text-sm font-semibold text-slate-600">
+            Áp dụng cho {Number(promotion.soSanPhamApDung || 0)} sản phẩm{promotion.sanPhamApDung ? `: ${promotion.sanPhamApDung}` : "."}
+          </p>
           <div className="mt-4 rounded-lg bg-sky-50 px-4 py-3 ring-1 ring-sky-100">
             <p className="text-xs font-black uppercase text-slate-500">Mã khuyến mãi</p>
             <p className="mt-1 break-all text-lg font-black text-[#075f83]">{promotionCodeText(promotion)}</p>

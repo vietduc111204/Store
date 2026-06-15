@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import api from "@/libs/axios";
 import { useAuthStore } from "@/stores/useAuthStore";
 import type { CustomerOrder, CustomerOrderDetail, Product } from "@/types/customer";
-import { discountPercent, fallbackImages, finalPrice, formatMoney, productImage } from "../utils";
+import { discountPercent, fallbackImages, finalPrice, formatMoney, productImage, productPromotionDateText } from "../utils";
 import { EmptyState } from "../components/EmptyState";
 import { ProductCard } from "../components/ProductCard";
 import { SectionTitle } from "../components/SectionTitle";
@@ -324,6 +324,7 @@ export const ProductDetailView = ({ onAdd, products }: { onAdd: (product: Produc
     : 0;
   const soldCount = Number(product.soLuongDaBan) || 0;
   const stock = Math.max(0, Number(product.soLuong) || 0);
+  const discount = discountPercent(product);
   const galleryImages = parseProductImages(product);
   const mainImage = selectedImage || galleryImages[0] || productImage(product, 1);
   const tabs = [
@@ -416,8 +417,13 @@ export const ProductDetailView = ({ onAdd, products }: { onAdd: (product: Produc
           </div>
           <div className="mt-5 flex flex-wrap items-end gap-3">
             <p className="text-4xl font-black text-[#075f83]">{formatMoney(finalPrice(product))}</p>
-            {discountPercent(product) ? <><p className="pb-1 text-lg text-slate-400 line-through">{formatMoney(product.gia)}</p><span className="mb-1 rounded bg-red-50 px-2 py-1 text-sm font-bold text-red-700">-{discountPercent(product)}%</span></> : null}
+            {discount ? <><p className="pb-1 text-lg text-slate-400 line-through">{formatMoney(product.gia)}</p><span className="mb-1 rounded bg-red-50 px-2 py-1 text-sm font-bold text-red-700">Đang giảm giá -{discount}%</span></> : null}
           </div>
+          {discount ? (
+            <p className="mt-3 rounded-lg bg-red-50 px-4 py-3 text-sm font-bold text-red-700 ring-1 ring-red-100">
+              Khuyến mãi áp dụng trong thời gian: {productPromotionDateText(product)}
+            </p>
+          ) : null}
           <div className="mt-6 rounded-lg bg-[#f4f8ff] p-5 ring-1 ring-slate-200">
             <h3 className="font-black">Mô tả ngắn</h3>
             <ul className="mt-4 grid gap-3 text-sm text-slate-700">

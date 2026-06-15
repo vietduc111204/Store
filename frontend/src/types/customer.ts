@@ -10,6 +10,8 @@ export type Product = {
   tenDanhMuc?: string | null;
   tenKhuyenMai?: string | null;
   phanTramGiam?: string | number | null;
+  ngayBatDau?: string | null;
+  ngayKetThuc?: string | null;
   thongSoKyThuat?: string | null;
   soLuongDaBan?: number | null;
 };
@@ -26,6 +28,8 @@ export type Promotion = {
   ngayBatDau?: string | null;
   ngayKetThuc?: string | null;
   isActive?: boolean | null;
+  soSanPhamApDung?: number | null;
+  sanPhamApDung?: string | null;
 };
 
 export type CartItem = {

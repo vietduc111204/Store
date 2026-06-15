@@ -18,10 +18,13 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
   const [appliedPromo, setAppliedPromo] = useState<Promotion | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"bank" | "cod">("cod");
   const [form, setForm] = useState({ name: user?.tenThanhVien || "", phone: user?.soDienThoaiKhachHang || "", address: user?.diaChiKhachHang || "", city: "Hồ Chí Minh", district: "Quận 1" });
-  const subtotal = cart.reduce((total, item) => total + finalPrice(item.product) * item.quantity, 0);
-  const discount = Math.round(subtotal * (Number(appliedPromo?.phanTramGiam) || 0) / 100);
+  const subtotal = cart.reduce((total, item) => total + (Number(item.product.gia) || 0) * item.quantity, 0);
+  const discount = cart.reduce((total, item) => total + ((Number(item.product.gia) || 0) - finalPrice(item.product)) * item.quantity, 0);
   const total = Math.max(0, subtotal - discount);
   const invalidStockItem = cart.find((item) => item.quantity > Math.max(0, Number(item.product.soLuong) || 0));
+  const appliedPromoItemCount = appliedPromo
+    ? cart.filter((item) => Number(item.product.maKhuyenMai) === Number(appliedPromo.maKhuyenMai) && Number(item.product.phanTramGiam || 0) > 0).length
+    : 0;
 
   const applyPromo = () => {
     const normalized = promoCode.trim().toLowerCase();
@@ -30,8 +33,15 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
       toast.error("Mã khuyến mãi không hợp lệ hoặc đã hết hạn");
       return;
     }
+    const eligibleItems = cart.filter(
+      (item) => Number(item.product.maKhuyenMai) === Number(found.maKhuyenMai) && Number(item.product.phanTramGiam || 0) > 0
+    );
+    if (!eligibleItems.length) {
+      toast.error("Mã khuyến mãi không áp dụng cho sản phẩm trong giỏ hàng");
+      return;
+    }
     setAppliedPromo(found);
-    toast.success("Đã áp dụng khuyến mãi");
+    toast.success(`Đã áp dụng mã cho ${eligibleItems.length} sản phẩm phù hợp`);
   };
 
   const submitOrder = async () => {
@@ -165,7 +175,7 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
           </div>
           {appliedPromo ? (
             <p className="mt-3 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-[#075f83] ring-1 ring-sky-200">
-              Đã áp dụng mã {promotionCodeText(appliedPromo)} - giảm {Number(appliedPromo.phanTramGiam || 0)}%.
+              Mã {promotionCodeText(appliedPromo)} áp dụng cho {appliedPromoItemCount} sản phẩm đang được giảm {Number(appliedPromo.phanTramGiam || 0)}%.
             </p>
           ) : null}
           {promotions.length ? (
@@ -185,6 +195,9 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
                     </span>
                   </span>
                   <span className="mt-2 block text-xs font-semibold text-slate-500">Hạn dùng: {promotionDateText(promotion)}</span>
+                  <span className="mt-1 block text-xs font-semibold text-slate-500">
+                    Áp dụng cho {Number(promotion.soSanPhamApDung || 0)} sản phẩm{promotion.sanPhamApDung ? `: ${promotion.sanPhamApDung}` : ""}
+                  </span>
                 </button>
               ))}
             </div>

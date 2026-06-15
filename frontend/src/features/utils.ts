@@ -29,6 +29,22 @@ export const discountPercent = (product?: Product) => Math.min(Math.max(Number(p
 
 export const finalPrice = (product: Product) => Math.round((Number(product.gia) || 0) * (100 - discountPercent(product)) / 100);
 
+export const productPromotionDateText = (product?: Product) => {
+  const formatDate = (value?: string | null) => {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return date.toLocaleDateString("vi-VN");
+  };
+
+  const start = formatDate(product?.ngayBatDau);
+  const end = formatDate(product?.ngayKetThuc);
+  if (start && end) return `${start} - ${end}`;
+  if (start) return `Từ ${start}`;
+  if (end) return `Đến ${end}`;
+  return "Không giới hạn thời gian";
+};
+
 export const readCart = (): CartItem[] => {
   try {
     const raw = window.localStorage.getItem(CART_KEY);

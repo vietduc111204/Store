@@ -31,6 +31,7 @@ const PromotionDashboard = ({ promotions, query, onQueryChange, onCreate, onEdit
           <th className="px-8 py-5">Mã</th>
           <th className="px-6 py-5">Tên khuyến mãi</th>
           <th className="px-6 py-5">% giảm</th>
+          <th className="px-6 py-5">Sản phẩm áp dụng</th>
           <th className="px-6 py-5">Thời hạn</th>
           <th className="px-6 py-5">Trạng thái</th>
           <th className="px-6 py-5">Thao tác</th>
@@ -42,6 +43,12 @@ const PromotionDashboard = ({ promotions, query, onQueryChange, onCreate, onEdit
             <td className="px-8 py-4 font-semibold">KM-{promotion.maKhuyenMai}</td>
             <td className="px-6 py-4 font-bold">{promotion.tenKhuyenMai}</td>
             <td className="px-6 py-4 font-bold text-sky-700">{Number(promotion.phanTramGiam || 0)}%</td>
+            <td className="px-6 py-4 text-sm">
+              <p className="font-bold text-slate-800">{Number(promotion.soSanPhamApDung || 0)} sản phẩm</p>
+              <p className="mt-1 line-clamp-2 max-w-72 text-xs font-semibold text-slate-500">
+                {promotion.sanPhamApDung || "Chưa gắn sản phẩm"}
+              </p>
+            </td>
             <td className="px-6 py-4 text-sm font-semibold text-slate-600">
               {formatDate(promotion.ngayBatDau)} - {formatDate(promotion.ngayKetThuc)}
             </td>
@@ -61,7 +68,7 @@ const PromotionDashboard = ({ promotions, query, onQueryChange, onCreate, onEdit
             </td>
           </tr>
         ))}
-        {promotions.length === 0 ? <EmptyRow colSpan={6} /> : null}
+        {promotions.length === 0 ? <EmptyRow colSpan={7} /> : null}
       </tbody>
     </DataShell>
   </>

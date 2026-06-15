@@ -112,6 +112,8 @@ export type Promotion = {
   ngayBatDau?: string | null;
   ngayKetThuc?: string | null;
   isActive?: boolean | null;
+  soSanPhamApDung?: number | null;
+  sanPhamApDung?: string | null;
 };
 
 export type RevenueStats = {

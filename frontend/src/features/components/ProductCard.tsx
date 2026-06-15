@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import type { Product } from "@/types/customer";
-import { discountPercent, finalPrice, formatMoney, hasFavoriteCategory, toggleFavoriteCategory } from "../utils";
+import { discountPercent, finalPrice, formatMoney, hasFavoriteCategory, productPromotionDateText, toggleFavoriteCategory } from "../utils";
 
 type ProductReview = {
   accountKey?: string;
@@ -42,6 +42,7 @@ export const ProductCard = ({ onAdd, product, compact = false }: { onAdd: (produ
     ? reviews.reduce((total, review) => total + Number(review.rating || 0), 0) / reviews.length
     : 0;
   const soldCount = Number(product.soLuongDaBan) || 0;
+  const discount = discountPercent(product);
 
   const toggleFavorite = (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -66,6 +67,11 @@ export const ProductCard = ({ onAdd, product, compact = false }: { onAdd: (produ
           >
             <Heart fill={favorite ? "currentColor" : "none"} size={20} />
           </button>
+          {discount ? (
+            <span className="absolute left-4 top-4 z-20 rounded-full bg-red-600 px-3 py-1 text-xs font-black uppercase text-white shadow">
+              Đang giảm giá -{discount}%
+            </span>
+          ) : null}
           {product.anh ? (
             <img alt={product.tenSanPham} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" src={product.anh} />
           ) : (
@@ -89,8 +95,9 @@ export const ProductCard = ({ onAdd, product, compact = false }: { onAdd: (produ
         </div>
         <div className="mt-3 flex items-end gap-2">
           <p className="text-2xl font-black text-[#075f83]">{formatMoney(finalPrice(product))}</p>
-          {discountPercent(product) ? <p className="pb-1 text-sm text-slate-400 line-through">{formatMoney(product.gia)}</p> : null}
+          {discount ? <p className="pb-1 text-sm text-slate-400 line-through">{formatMoney(product.gia)}</p> : null}
         </div>
+        {discount ? <p className="mt-2 text-xs font-bold text-red-700">Khuyến mãi: {productPromotionDateText(product)}</p> : null}
         <button className="relative z-20 mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-[#0879a8] px-4 py-3 font-black text-white shadow-sm hover:bg-[#075f83]" onClick={() => onAdd(product)}>
           <ShoppingCart size={20} />
           Thêm vào giỏ

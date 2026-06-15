@@ -70,7 +70,7 @@ const calculateOrderItems = async (client, items) => {
 
   for (const { maSanPham, soLuong } of aggregateOrderItems(items)) {
     const productResult = await client.query(
-      `select sp."maSanPham", sp."tenSanPham", sp."gia", sp."soLuong",
+      `select sp."maSanPham", sp."tenSanPham", sp."gia", sp."soLuong", sp."maKhuyenMai",
         case when k."maKhuyenMai" is not null
           and (k."ngayBatDau" is null or k."ngayBatDau" <= current_date)
           and (k."ngayKetThuc" is null or k."ngayKetThuc" >= current_date)
@@ -94,7 +94,7 @@ const calculateOrderItems = async (client, items) => {
     const phanTramGiam = Math.min(Math.max(Number(product.phanTramGiam) || 0, 0), 100);
     const thanhTien = Math.round(gia * soLuong * (100 - phanTramGiam)) / 100;
 
-    details.push({ maSanPham, soLuong, thanhTien, phanTramGiam });
+    details.push({ maSanPham, maKhuyenMai: product.maKhuyenMai, soLuong, thanhTien, phanTramGiam });
   }
 
   return details;
@@ -134,12 +134,19 @@ const getOrderDiscountPercent = async (client, maKhuyenMai) => {
   return Math.min(Math.max(Number(result.rows[0].phanTramGiam) || 0, 0), 100);
 };
 
-const applyOrderDiscount = (details, phanTramGiam) => {
-  if (!phanTramGiam) return details;
-  return details.map((detail) => ({
-    ...detail,
-    thanhTien: Math.round(detail.thanhTien * (100 - phanTramGiam)) / 100,
-  }));
+const validatePromotionAppliesToItems = async (client, maKhuyenMai, details) => {
+  if (!maKhuyenMai) return null;
+
+  await getOrderDiscountPercent(client, maKhuyenMai);
+  const hasEligibleProduct = details.some(
+    (detail) => Number(detail.maKhuyenMai) === Number(maKhuyenMai) && Number(detail.phanTramGiam) > 0
+  );
+
+  if (!hasEligibleProduct) {
+    throw new Error('Mã khuyến mãi không áp dụng cho sản phẩm trong giỏ hàng');
+  }
+
+  return maKhuyenMai;
 };
 
 const restoreOrderStock = async (client, maDonHang) => {
@@ -173,12 +180,12 @@ export const createOrder = async (req, res) => {
 
     const rawDetails = items.length ? await calculateOrderItems(client, items) : [];
     const maKhuyenMai = req.body.maKhuyenMai || null;
+    const appliedPromotion = await validatePromotionAppliesToItems(client, maKhuyenMai, rawDetails);
 
-    const phanTramGiamDonHang = await getOrderDiscountPercent(client, maKhuyenMai);
-    const details = applyOrderDiscount(rawDetails, phanTramGiamDonHang);
+    const details = rawDetails;
     const tongGia = details.length
       ? details.reduce((total, item) => total + item.thanhTien, 0)
-      : Math.round(Number(req.body.tongGia) * (100 - phanTramGiamDonHang)) / 100;
+      : Number(req.body.tongGia);
 
     if (!Number.isFinite(tongGia) || tongGia < 0) {
       throw new Error('Tổng giá không hợp lệ');
@@ -186,7 +193,7 @@ export const createOrder = async (req, res) => {
 
     const orderResult = await client.query(
       'insert into "DonHang" ("tongGia", "trangThai", "maKhachHang", "maKhuyenMai") values ($1, $2, $3, $4) returning *',
-      [tongGia, req.body.trangThai || 'Mới tạo', maKhachHang, maKhuyenMai]
+      [tongGia, req.body.trangThai || 'Mới tạo', maKhachHang, appliedPromotion]
     );
 
     const order = orderResult.rows[0];

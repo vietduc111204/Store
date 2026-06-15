@@ -27,22 +27,27 @@ export const searchPromotions = async (req, res) => {
 
     if (q) {
       values.push(`%${q}%`);
-      conditions.push(`("maKhuyenMai"::text ilike $${values.length} or "tenKhuyenMai" ilike $${values.length})`);
+      conditions.push(`(km."maKhuyenMai"::text ilike $${values.length} or km."tenKhuyenMai" ilike $${values.length})`);
     }
 
     if (activeOnly) {
-      conditions.push('("ngayBatDau" is null or "ngayBatDau" <= current_date)');
-      conditions.push('("ngayKetThuc" is null or "ngayKetThuc" >= current_date)');
+      conditions.push('(km."ngayBatDau" is null or km."ngayBatDau" <= current_date)');
+      conditions.push('(km."ngayKetThuc" is null or km."ngayKetThuc" >= current_date)');
     }
 
     values.push(Math.min(Number(req.query.limit) || 100, 500));
     const where = conditions.length ? ` where ${conditions.join(' and ')}` : '';
 
     const result = await pool.query(
-      `select *,
-        ("ngayBatDau" is null or "ngayBatDau" <= current_date)
-        and ("ngayKetThuc" is null or "ngayKetThuc" >= current_date) as "isActive"
-       from "KhuyenMai"${where} order by "maKhuyenMai" desc limit $${values.length}`,
+      `select km.*,
+        (km."ngayBatDau" is null or km."ngayBatDau" <= current_date)
+        and (km."ngayKetThuc" is null or km."ngayKetThuc" >= current_date) as "isActive",
+        count(sp."maSanPham")::int as "soSanPhamApDung",
+        coalesce(string_agg(sp."tenSanPham", ', ' order by sp."tenSanPham") filter (where sp."maSanPham" is not null), '') as "sanPhamApDung"
+       from "KhuyenMai" km
+       left join "SanPham" sp on sp."maKhuyenMai" = km."maKhuyenMai"${where}
+       group by km."maKhuyenMai"
+       order by km."maKhuyenMai" desc limit $${values.length}`,
       values
     );
 
