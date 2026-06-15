@@ -187,8 +187,8 @@ export const createOrder = async (req, res) => {
     await client.query('begin');
     await resetSerialSequence(client, 'DonHang', 'maDonHang');
 
-    const rawDetails = items.length ? await calculateOrderItems(client, items, maKhuyenMai) : [];
     const maKhuyenMai = req.body.maKhuyenMai || null;
+    const rawDetails = items.length ? await calculateOrderItems(client, items, maKhuyenMai) : [];
     const appliedPromotion = await validatePromotionAppliesToItems(client, maKhuyenMai, rawDetails);
 
     const details = rawDetails;
