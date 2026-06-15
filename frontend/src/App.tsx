@@ -19,6 +19,7 @@ function App() {
           <Route path="/san-pham" element={<CustomerPage />} />
           <Route path="/san-pham/:id" element={<CustomerPage />} />
           <Route path="/gio-hang" element={<CustomerPage />} />
+          <Route path="/thanh-cong" element={<CustomerPage />} />
           <Route path="/signin" element={<SignInPage />} />
           <Route path="/signup" element={<SignUpPage />} />
 

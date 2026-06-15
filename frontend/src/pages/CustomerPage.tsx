@@ -8,6 +8,7 @@ import { useStorefrontData } from "@/features/useStorefrontData";
 import { CartView } from "@/features/views/CartView";
 import { CustomerAccountView } from "@/features/views/CustomerAccountView";
 import { HomeView } from "@/features/views/HomeView";
+import { PaymentSuccessView } from "@/features/views/PaymentSuccessView";
 import { ProductDetailView } from "@/features/views/ProductDetailView";
 import { ProductListView } from "@/features/views/ProductListView";
 import type { CartItem, Product } from "@/types/customer";
@@ -92,6 +93,7 @@ const CustomerPage = () => {
   if (location.pathname.startsWith("/san-pham/")) content = <ProductDetailView onAdd={addToCart} products={products} />;
   if (location.pathname === "/gio-hang") content = <CartView cart={cart} onClear={clearCart} onQuantity={updateQuantity} onRemove={removeItem} promotions={promotions} />;
   if (location.pathname === "/khach-hang") content = <CustomerAccountView />;
+  if (location.pathname === "/thanh-cong") content = <PaymentSuccessView />;
 
   return (
     <div className="min-h-screen bg-[#f8f9ff] font-sans text-slate-900">

@@ -65,7 +65,7 @@ const aggregateOrderItems = (items) => {
   return Array.from(itemMap, ([maSanPham, soLuong]) => ({ maSanPham, soLuong }));
 };
 
-const calculateOrderItems = async (client, items) => {
+const calculateOrderItems = async (client, items, appliedPromoCode = null) => {
   const details = [];
 
   for (const { maSanPham, soLuong } of aggregateOrderItems(items)) {
@@ -92,7 +92,16 @@ const calculateOrderItems = async (client, items) => {
 
     const gia = Number(product.gia);
     const phanTramGiam = Math.min(Math.max(Number(product.phanTramGiam) || 0, 0), 100);
-    const thanhTien = Math.round(gia * soLuong * (100 - phanTramGiam)) / 100;
+    let thanhTien = Math.round(gia * soLuong * (100 - phanTramGiam)) / 100;
+
+    // Apply promo code as additional stacked discount on top of existing product discount
+    const isPromoItem =
+      appliedPromoCode &&
+      Number(product.maKhuyenMai) === Number(appliedPromoCode) &&
+      phanTramGiam > 0;
+    if (isPromoItem) {
+      thanhTien = Math.round(thanhTien * (100 - phanTramGiam)) / 100;
+    }
 
     details.push({ maSanPham, maKhuyenMai: product.maKhuyenMai, soLuong, thanhTien, phanTramGiam });
   }
@@ -178,7 +187,7 @@ export const createOrder = async (req, res) => {
     await client.query('begin');
     await resetSerialSequence(client, 'DonHang', 'maDonHang');
 
-    const rawDetails = items.length ? await calculateOrderItems(client, items) : [];
+    const rawDetails = items.length ? await calculateOrderItems(client, items, maKhuyenMai) : [];
     const maKhuyenMai = req.body.maKhuyenMai || null;
     const appliedPromotion = await validatePromotionAppliesToItems(client, maKhuyenMai, rawDetails);
 

@@ -81,12 +81,19 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
       return;
     }
     try {
-      await api.post("/don-hang/them", {
+      const orderRes = await api.post("/don-hang/them", {
         maKhachHang: user.maKhachHang,
         maKhuyenMai: appliedPromo?.maKhuyenMai || null,
         trangThai: "Mới tạo",
         items: cart.map((item) => ({ maSanPham: item.product.maSanPham, soLuong: item.quantity })),
       });
+
+      if (paymentMethod === "bank") {
+        const payRes = await api.post("/payment/create-link", { maDonHang: orderRes.data.maDonHang });
+        window.location.href = payRes.data.checkoutUrl;
+        return;
+      }
+
       onClear();
       toast.success("Đặt hàng thành công");
       navigate("/khach-hang", { state: { accountSection: "orders" } });
@@ -148,18 +155,12 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
                 text="Quét mã QR để thanh toán nhanh"
               />
               {paymentMethod === "bank" ? (
-                <div className="grid gap-5 rounded-lg border border-sky-100 bg-sky-50 p-5 sm:grid-cols-[220px_1fr] sm:items-center">
-                  <img
-                    alt="Mã QR thanh toán chuyển khoản"
-                    className="mx-auto aspect-square w-full max-w-[220px] rounded-lg bg-white object-contain p-3 ring-1 ring-sky-200"
-                    src="/thanhtoan.jpg"
-                  />
-                  <div>
-                    <h3 className="font-black text-slate-950">Quét QR để chuyển khoản</h3>
-                    <p className="mt-2 text-sm leading-6 text-slate-600">
-                      Vui lòng chuyển khoản đúng số tiền <span className="font-black text-[#075f83]">{formatMoney(total)}</span>, sau đó bấm hoàn tất đặt hàng.
-                    </p>
-                  </div>
+                <div className="rounded-lg border border-sky-100 bg-sky-50 p-5">
+                  <h3 className="font-black text-slate-950">Thanh toán qua PayOS</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                    Bạn sẽ được chuyển đến trang thanh toán an toàn của PayOS với số tiền{" "}
+                    <span className="font-black text-[#075f83]">{formatMoney(total)}</span>. Hỗ trợ tất cả ngân hàng và ví điện tử.
+                  </p>
                 </div>
               ) : null}
               <PaymentOption
@@ -242,7 +243,7 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
             </div>
           ) : null}
           <button className="mt-7 flex w-full items-center justify-center gap-3 rounded-lg bg-[#0879a8] px-6 py-5 text-xl font-black text-white shadow-sm disabled:cursor-not-allowed disabled:bg-slate-400" disabled={!!invalidStockItem} onClick={() => void submitOrder()}>
-            {paymentMethod === "cod" ? "Thanh toán khi nhận hàng" : "Tôi đã chuyển khoản"} <ArrowRight />
+            {paymentMethod === "cod" ? "Thanh toán khi nhận hàng" : "Thanh toán qua PayOS"} <ArrowRight />
           </button>
           <p className="mt-5 text-center text-sm leading-6 text-slate-600">Bằng cách đặt hàng, bạn đồng ý với Điều khoản dịch vụ của chúng tôi.</p>
           <div className="mt-8 flex justify-center gap-5 text-sm text-slate-500"><span className="flex items-center gap-1"><Lock size={16} /> Bảo mật SSL</span><span className="flex items-center gap-1"><PackageCheck size={16} /> 7 ngày đổi trả</span></div>
