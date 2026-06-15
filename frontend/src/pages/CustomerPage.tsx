@@ -24,6 +24,19 @@ const CustomerPage = () => {
   }, [location.pathname, location.search]);
 
   useEffect(() => {
+    if (!products.length) return;
+    const productById = new Map(products.map((product) => [product.maSanPham, product]));
+    const items = readCart();
+    const next = items.map((item) => {
+      const product = productById.get(item.product.maSanPham) || item.product;
+      const stock = Math.max(0, Number(product.soLuong) || 0);
+      return { ...item, product, quantity: Math.min(item.quantity, Math.max(1, stock)) };
+    });
+
+    if (JSON.stringify(next) !== JSON.stringify(items)) syncCart(next);
+  }, [products]);
+
+  useEffect(() => {
     sessionStorage.setItem("customer:lastPath", `${location.pathname}${location.search}${location.hash}`);
   }, [location.hash, location.pathname, location.search]);
 
@@ -32,18 +45,41 @@ const CustomerPage = () => {
     writeCart(items);
   };
 
+  const productStock = (product: Product) => Math.max(0, Number(product.soLuong) || 0);
+
   const addToCart = (product: Product, quantity = 1) => {
+    const stock = productStock(product);
+    if (stock <= 0) {
+      toast.error("Sản phẩm đã hết hàng");
+      return;
+    }
+
     const items = readCart();
     const existing = items.find((item) => item.product.maSanPham === product.maSanPham);
+    const requestedQuantity = Math.max(1, quantity);
+    const currentQuantity = existing?.quantity || 0;
+    const nextQuantity = Math.min(stock, currentQuantity + requestedQuantity);
+
+    if (nextQuantity === currentQuantity) {
+      toast.error(`Sản phẩm chỉ còn ${stock} trong kho`);
+      return;
+    }
+
     const next = existing
-      ? items.map((item) => item.product.maSanPham === product.maSanPham ? { ...item, product, quantity: item.quantity + quantity } : item)
-      : [...items, { product, quantity }];
+      ? items.map((item) => item.product.maSanPham === product.maSanPham ? { ...item, product, quantity: nextQuantity } : item)
+      : [...items, { product, quantity: nextQuantity }];
     syncCart(next);
-    toast.success("Đã thêm vào giỏ hàng");
+    toast.success(nextQuantity < currentQuantity + requestedQuantity ? `Đã thêm tối đa ${stock} sản phẩm trong kho` : "Đã thêm vào giỏ hàng");
   };
 
   const updateQuantity = (id: number, quantity: number) => {
-    const next = cart.map((item) => item.product.maSanPham === id ? { ...item, quantity: Math.max(1, quantity) } : item);
+    const next = cart.map((item) => {
+      if (item.product.maSanPham !== id) return item;
+      const stock = productStock(item.product);
+      const nextQuantity = Math.min(Math.max(1, quantity), Math.max(1, stock));
+      if (quantity > stock) toast.error(`Sản phẩm chỉ còn ${stock} trong kho`);
+      return { ...item, quantity: nextQuantity };
+    });
     syncCart(next);
   };
 

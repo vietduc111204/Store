@@ -21,6 +21,7 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
   const subtotal = cart.reduce((total, item) => total + finalPrice(item.product) * item.quantity, 0);
   const discount = Math.round(subtotal * (Number(appliedPromo?.phanTramGiam) || 0) / 100);
   const total = Math.max(0, subtotal - discount);
+  const invalidStockItem = cart.find((item) => item.quantity > Math.max(0, Number(item.product.soLuong) || 0));
 
   const applyPromo = () => {
     const normalized = promoCode.trim().toLowerCase();
@@ -35,6 +36,11 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
 
   const submitOrder = async () => {
     if (!cart.length) return toast.error("Giỏ hàng đang trống");
+    if (invalidStockItem) {
+      toast.error(`Sản phẩm ${invalidStockItem.product.tenSanPham} chỉ còn ${Math.max(0, Number(invalidStockItem.product.soLuong) || 0)} trong kho`);
+      return;
+    }
+
     const requiredFields = [
       { label: "họ và tên", value: form.name },
       { label: "số điện thoại", value: form.phone },
@@ -87,8 +93,9 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
                     <div className="mt-5 inline-grid grid-cols-3 rounded-lg bg-white ring-1 ring-slate-200">
                       <button className="px-4 py-2" onClick={() => onQuantity(item.product.maSanPham, item.quantity - 1)}>-</button>
                       <span className="px-5 py-2 text-center font-bold">{item.quantity}</span>
-                      <button className="px-4 py-2" onClick={() => onQuantity(item.product.maSanPham, item.quantity + 1)}>+</button>
+                      <button className="px-4 py-2 disabled:cursor-not-allowed disabled:text-slate-300" disabled={item.quantity >= Math.max(0, Number(item.product.soLuong) || 0)} onClick={() => onQuantity(item.product.maSanPham, item.quantity + 1)}>+</button>
                     </div>
+                    <p className="mt-2 text-xs font-semibold text-slate-500">Còn {Math.max(0, Number(item.product.soLuong) || 0)} trong kho</p>
                   </div>
                   <div className="text-right">
                     <p className="text-xl font-black text-[#075f83]">{formatMoney(finalPrice(item.product) * item.quantity)}</p>
@@ -182,7 +189,7 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
               ))}
             </div>
           ) : null}
-          <button className="mt-7 flex w-full items-center justify-center gap-3 rounded-lg bg-[#0879a8] px-6 py-5 text-xl font-black text-white shadow-sm" onClick={() => void submitOrder()}>
+          <button className="mt-7 flex w-full items-center justify-center gap-3 rounded-lg bg-[#0879a8] px-6 py-5 text-xl font-black text-white shadow-sm disabled:cursor-not-allowed disabled:bg-slate-400" disabled={!!invalidStockItem} onClick={() => void submitOrder()}>
             {paymentMethod === "cod" ? "Thanh toán khi nhận hàng" : "Tôi đã chuyển khoản"} <ArrowRight />
           </button>
           <p className="mt-5 text-center text-sm leading-6 text-slate-600">Bằng cách đặt hàng, bạn đồng ý với Điều khoản dịch vụ của chúng tôi.</p>

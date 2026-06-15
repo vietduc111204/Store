@@ -61,7 +61,7 @@ export const useManagementForms = ({
   ];
 
   const productOptions = products.map((product) => ({
-    label: `${product.tenSanPham}${product.phanTramGiam ? ` - giảm ${Number(product.phanTramGiam)}%` : ""}`,
+    label: `${product.tenSanPham} - còn ${Number(product.soLuong) || 0}${product.phanTramGiam ? ` - giảm ${Number(product.phanTramGiam)}%` : ""}`,
     value: String(product.maSanPham),
   }));
 
@@ -261,8 +261,17 @@ export const useManagementForms = ({
       onSubmit: async (values) => {
         if (isCreate) {
           const quantity = Number(values.soLuong);
+          const selectedProduct = products.find((product) => String(product.maSanPham) === String(values.maSanPham));
           if (!Number.isInteger(quantity) || quantity <= 0) {
             toast.error("Số lượng đơn hàng phải là số nguyên dương");
+            return;
+          }
+          if (!selectedProduct) {
+            toast.error("Vui lòng chọn sản phẩm");
+            return;
+          }
+          if (quantity > (Number(selectedProduct.soLuong) || 0)) {
+            toast.error(`Sản phẩm chỉ còn ${Number(selectedProduct.soLuong) || 0} trong kho`);
             return;
           }
         }

@@ -276,6 +276,7 @@ export const ProductDetailView = ({ onAdd, products }: { onAdd: (product: Produc
     setEditingReview(false);
     setSelectedImage("");
     setReviewForm({ author: "", comment: "", rating: "5" });
+    setQuantity(1);
   }, [product?.maSanPham]);
 
   useEffect(() => {
@@ -322,6 +323,7 @@ export const ProductDetailView = ({ onAdd, products }: { onAdd: (product: Produc
     ? reviews.reduce((total, review) => total + review.rating, 0) / reviews.length
     : 0;
   const soldCount = Number(product.soLuongDaBan) || 0;
+  const stock = Math.max(0, Number(product.soLuong) || 0);
   const galleryImages = parseProductImages(product);
   const mainImage = selectedImage || galleryImages[0] || productImage(product, 1);
   const tabs = [
@@ -428,10 +430,10 @@ export const ProductDetailView = ({ onAdd, products }: { onAdd: (product: Produc
             <div className="grid grid-cols-3 rounded-lg bg-white ring-1 ring-slate-200">
               <button onClick={() => setQuantity((value) => Math.max(1, value - 1))}><Minus className="mx-auto" size={17} /></button>
               <span className="py-3 text-center font-bold">{quantity}</span>
-              <button onClick={() => setQuantity((value) => value + 1)}>+</button>
+              <button className="disabled:cursor-not-allowed disabled:text-slate-300" disabled={quantity >= stock} onClick={() => setQuantity((value) => Math.min(stock, value + 1))}>+</button>
             </div>
-            <button className="rounded-lg bg-[#0879a8] px-5 py-3 font-black text-white" onClick={() => { onAdd(product, quantity); navigate("/gio-hang"); }}>Mua ngay</button>
-            <button className="rounded-lg border border-[#075f83] px-5 py-3 font-black text-[#075f83] sm:col-span-2" onClick={() => onAdd(product, quantity)}>Thêm vào giỏ hàng</button>
+            <button className="rounded-lg bg-[#0879a8] px-5 py-3 font-black text-white disabled:cursor-not-allowed disabled:bg-slate-400" disabled={stock <= 0} onClick={() => { onAdd(product, quantity); navigate("/gio-hang"); }}>Mua ngay</button>
+            <button className="rounded-lg border border-[#075f83] px-5 py-3 font-black text-[#075f83] disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400 sm:col-span-2" disabled={stock <= 0} onClick={() => onAdd(product, quantity)}>Thêm vào giỏ hàng</button>
           </div>
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <InfoPill icon={<Truck size={19} />} title="Miễn phí vận chuyển" text="Cho đơn hàng từ 500k" />

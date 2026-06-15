@@ -31,6 +31,7 @@ const orderDetailConfig = {
 
 const orderHandlers = createCrudHandlers(orderConfig, 'Order');
 const orderDetailHandlers = createCrudHandlers(orderDetailConfig, 'Order detail');
+const CANCELLED_STATUS = 'Đã hủy';
 
 export const listOrders = orderHandlers.list;
 export const getOrderById = orderHandlers.getById;
@@ -44,8 +45,8 @@ const normalizeOrderItems = (body) => {
   return [];
 };
 
-const calculateOrderItems = async (client, items) => {
-  const details = [];
+const aggregateOrderItems = (items) => {
+  const itemMap = new Map();
 
   for (const item of items) {
     const maSanPham = Number(item.maSanPham);
@@ -58,21 +59,37 @@ const calculateOrderItems = async (client, items) => {
       throw new Error('Số lượng không hợp lệ');
     }
 
+    itemMap.set(maSanPham, (itemMap.get(maSanPham) || 0) + soLuong);
+  }
+
+  return Array.from(itemMap, ([maSanPham, soLuong]) => ({ maSanPham, soLuong }));
+};
+
+const calculateOrderItems = async (client, items) => {
+  const details = [];
+
+  for (const { maSanPham, soLuong } of aggregateOrderItems(items)) {
     const productResult = await client.query(
-      `select sp."maSanPham", sp."gia",
+      `select sp."maSanPham", sp."tenSanPham", sp."gia", sp."soLuong",
         case when k."maKhuyenMai" is not null
           and (k."ngayBatDau" is null or k."ngayBatDau" <= current_date)
           and (k."ngayKetThuc" is null or k."ngayKetThuc" >= current_date)
         then coalesce(k."phanTramGiam", 0)::numeric else 0 end as "phanTramGiam"
        from "SanPham" sp
        left join "KhuyenMai" k on k."maKhuyenMai" = sp."maKhuyenMai"
-       where sp."maSanPham" = $1`,
+       where sp."maSanPham" = $1
+       for update of sp`,
       [maSanPham]
     );
 
     if (!productResult.rowCount) throw new Error(`Không tìm thấy sản phẩm ${maSanPham}`);
 
     const product = productResult.rows[0];
+    const stock = Number(product.soLuong);
+    if (!Number.isInteger(stock) || stock < soLuong) {
+      throw new Error(`Sản phẩm ${product.tenSanPham || maSanPham} chỉ còn ${Math.max(stock || 0, 0)} trong kho`);
+    }
+
     const gia = Number(product.gia);
     const phanTramGiam = Math.min(Math.max(Number(product.phanTramGiam) || 0, 0), 100);
     const thanhTien = Math.round(gia * soLuong * (100 - phanTramGiam)) / 100;
@@ -125,6 +142,20 @@ const applyOrderDiscount = (details, phanTramGiam) => {
   }));
 };
 
+const restoreOrderStock = async (client, maDonHang) => {
+  const details = await client.query(
+    'select "maSanPham", "soLuong" from "ChiTietDonHang" where "maDonHang" = $1',
+    [maDonHang]
+  );
+
+  for (const detail of details.rows) {
+    await client.query(
+      'update "SanPham" set "soLuong" = "soLuong" + $1 where "maSanPham" = $2',
+      [detail.soLuong, detail.maSanPham]
+    );
+  }
+};
+
 export const createOrder = async (req, res) => {
   const maKhachHang = req.body.maKhachHang;
   if (!maKhachHang) return res.status(400).json({ message: 'Thiếu mã khách hàng' });
@@ -165,6 +196,13 @@ export const createOrder = async (req, res) => {
         'insert into "ChiTietDonHang" ("maDonHang", "maSanPham", "soLuong", "thanhTien") values ($1, $2, $3, $4)',
         [order.maDonHang, detail.maSanPham, detail.soLuong, detail.thanhTien]
       );
+      const stockResult = await client.query(
+        'update "SanPham" set "soLuong" = "soLuong" - $1 where "maSanPham" = $2 and "soLuong" >= $1',
+        [detail.soLuong, detail.maSanPham]
+      );
+      if (!stockResult.rowCount) {
+        throw new Error(`Sản phẩm ${detail.maSanPham} không đủ số lượng trong kho`);
+      }
     }
 
     await client.query('commit');
@@ -255,17 +293,37 @@ export const searchOrders = async (req, res) => {
 };
 
 export const cancelOrder = async (req, res) => {
+  const client = await pool.connect();
+
   try {
-    const result = await pool.query(
-      'update "DonHang" set "trangThai" = $1 where "maDonHang" = $2 returning *',
-      ['Đã hủy', req.params.id]
+    await client.query('begin');
+    const current = await client.query(
+      'select "trangThai" from "DonHang" where "maDonHang" = $1 for update',
+      [req.params.id]
     );
 
-    if (!result.rowCount) return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+    if (!current.rowCount) {
+      await client.query('rollback');
+      return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+    }
+
+    if ((current.rows[0].trangThai || '').trim() !== CANCELLED_STATUS) {
+      await restoreOrderStock(client, req.params.id);
+    }
+
+    const result = await client.query(
+      'update "DonHang" set "trangThai" = $1 where "maDonHang" = $2 returning *',
+      [CANCELLED_STATUS, req.params.id]
+    );
+
+    await client.query('commit');
     res.json(result.rows[0]);
   } catch (error) {
+    await client.query('rollback');
     console.error('Cancel order failed', error);
     res.status(500).json({ message: error.message });
+  } finally {
+    client.release();
   }
 };
 
@@ -273,17 +331,37 @@ export const updateOrderStatus = async (req, res) => {
   const { trangThai } = req.body;
   if (!trangThai) return res.status(400).json({ message: 'Thiếu trạng thái' });
 
+  const client = await pool.connect();
+
   try {
-    const result = await pool.query(
+    await client.query('begin');
+    const current = await client.query(
+      'select "trangThai" from "DonHang" where "maDonHang" = $1 for update',
+      [req.params.id]
+    );
+
+    if (!current.rowCount) {
+      await client.query('rollback');
+      return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+    }
+
+    if (trangThai.trim() === CANCELLED_STATUS && (current.rows[0].trangThai || '').trim() !== CANCELLED_STATUS) {
+      await restoreOrderStock(client, req.params.id);
+    }
+
+    const result = await client.query(
       'update "DonHang" set "trangThai" = $1 where "maDonHang" = $2 returning *',
       [trangThai, req.params.id]
     );
 
-    if (!result.rowCount) return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+    await client.query('commit');
     res.json(result.rows[0]);
   } catch (error) {
+    await client.query('rollback');
     console.error('Update order status failed', error);
     res.status(500).json({ message: error.message });
+  } finally {
+    client.release();
   }
 };
 
