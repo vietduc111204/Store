@@ -1,5 +1,8 @@
-import { Printer } from "lucide-react";
+import { useState } from "react";
+import { FileSpreadsheet, FileText, Printer } from "lucide-react";
+import { toast } from "sonner";
 import type { ProductStats, RevenueStats } from "@/types/management";
+import { exportExcel, exportPDF } from "./reportExport";
 import { formatMoney, PAGE_SIZE, PaginationFooter, StatBox, usePaginatedRows } from "./shared";
 
 const printReport = (revenueStats: RevenueStats, productStats: ProductStats) => {
@@ -129,16 +132,43 @@ const printReport = (revenueStats: RevenueStats, productStats: ProductStats) => 
 const ReportDashboard = ({ revenueStats, productStats }: { revenueStats: RevenueStats; productStats: ProductStats }) => {
   const bestSelling = productStats.bestSelling || [];
   const { currentPage, pageRows, pageSize, setPage, totalPages } = usePaginatedRows(bestSelling, PAGE_SIZE);
+  const [pdfLoading, setPdfLoading] = useState(false);
+
+  const handleExportPDF = async () => {
+    setPdfLoading(true);
+    try {
+      await exportPDF(revenueStats, productStats);
+    } catch {
+      toast.error("Không xuất được PDF");
+    } finally {
+      setPdfLoading(false);
+    }
+  };
 
   return (
     <div>
-      <div className="mb-5 flex justify-end">
+      <div className="mb-5 flex justify-end gap-2">
         <button
-          className="flex items-center gap-2 rounded-lg bg-[#0879a8] px-4 py-2.5 text-sm font-black text-white shadow-sm hover:bg-[#075f83]"
+          className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 shadow-sm hover:bg-slate-50"
           onClick={() => printReport(revenueStats, productStats)}
         >
           <Printer size={16} />
           In báo cáo
+        </button>
+        <button
+          className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-black text-red-700 shadow-sm hover:bg-red-100 disabled:opacity-60"
+          disabled={pdfLoading}
+          onClick={handleExportPDF}
+        >
+          <FileText size={16} />
+          {pdfLoading ? "Đang xuất..." : "Xuất PDF"}
+        </button>
+        <button
+          className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-black text-white shadow-sm hover:bg-emerald-700"
+          onClick={() => exportExcel(revenueStats, productStats)}
+        >
+          <FileSpreadsheet size={16} />
+          Xuất Excel
         </button>
       </div>
       <div className="grid gap-5 xl:grid-cols-2">
