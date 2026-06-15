@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import api from "@/libs/axios";
 import type { Category, Product, Promotion } from "@/types/customer";
@@ -7,14 +7,16 @@ type ProductStatistics = {
   bestSelling?: Array<{ maSanPham: number; soLuongDaBan: number }>;
 };
 
-export const useStorefrontData = () => {
+export const useStorefrontData = (locationKey?: string) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(true);
+  const initialized = useRef(false);
 
   useEffect(() => {
     const load = async () => {
+      if (!initialized.current) setLoading(true);
       try {
         const [productRes, categoryRes, promotionRes, statsRes] = await Promise.all([
           api.get<Product[]>("/san-pham/tim-kiem"),
@@ -45,11 +47,12 @@ export const useStorefrontData = () => {
         toast.error("Không tải được dữ liệu cửa hàng");
       } finally {
         setLoading(false);
+        initialized.current = true;
       }
     };
 
     void load();
-  }, []);
+  }, [locationKey]);
 
   return { categories, loading, products, promotions };
 };

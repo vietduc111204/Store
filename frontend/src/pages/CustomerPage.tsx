@@ -15,7 +15,7 @@ import type { CartItem, Product } from "@/types/customer";
 import { readCart, writeCart } from "@/features/utils";
 
 const CustomerPage = () => {
-  const { categories, loading, products, promotions } = useStorefrontData();
+  const { categories, loading, products, promotions } = useStorefrontData(location.key);
   const location = useLocation();
   const [cart, setCart] = useState<CartItem[]>([]);
 
