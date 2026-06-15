@@ -21,7 +21,21 @@ const employeeHandlers = createCrudHandlers(employeeConfig, 'Employee');
 export const listEmployees = employeeHandlers.list;
 export const getEmployeeById = employeeHandlers.getById;
 export const updateEmployee = employeeHandlers.update;
-export const deleteEmployee = employeeHandlers.remove;
+export const deleteEmployee = async (req, res) => {
+  try {
+    const accountResult = await pool.query(
+      'select 1 from "TaiKhoan" where "maNhanVien" = $1 limit 1',
+      [req.params.id]
+    );
+    if (accountResult.rowCount) {
+      return res.status(409).json({ message: 'Không thể xóa nhân viên đang có tài khoản' });
+    }
+    return employeeHandlers.remove(req, res);
+  } catch (error) {
+    console.error('Delete employee failed', error);
+    return res.status(500).json({ message: error.message });
+  }
+};
 
 export const createEmployee = async (req, res) => {
   const client = await pool.connect();
