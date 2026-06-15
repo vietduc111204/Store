@@ -16,7 +16,9 @@
     "start": "node src/server.js",
     "accounts:inspect": "node scripts/inspectAccounts.js",
     "accounts:sync": "node scripts/syncAccounts.js",
-    "db:inspect": "node scripts/inspectConnection.js"
+    "db:inspect": "node scripts/inspectConnection.js",
+    "promotions:inspect": "node scripts/inspectPromotions.js",
+    "promotions:sync": "node scripts/syncExistingPromotions.js"
   },
   "type": "module",
   "keywords": [],
