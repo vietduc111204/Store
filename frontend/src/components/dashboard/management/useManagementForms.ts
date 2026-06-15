@@ -362,6 +362,11 @@ export const useManagementForms = ({
           return;
         }
 
+        if (values.ngayBatDau && values.ngayKetThuc && values.ngayKetThuc < values.ngayBatDau) {
+          toast.error("Ngày kết thúc không được trước ngày bắt đầu");
+          return;
+        }
+
         const res = mode === "create"
           ? await api.post<Promotion>("/khuyen-mai/them", values)
           : await api.put<Promotion>(`/khuyen-mai/sua/${promotion?.maKhuyenMai}`, values);
