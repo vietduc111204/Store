@@ -19,12 +19,8 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
   const [paymentMethod, setPaymentMethod] = useState<"bank" | "cod">("cod");
   const [form, setForm] = useState({ name: user?.tenThanhVien || "", phone: user?.soDienThoaiKhachHang || "", address: user?.diaChiKhachHang || "", city: "Hồ Chí Minh", district: "Quận 1" });
   const subtotal = cart.reduce((sum, item) => sum + (Number(item.product.gia) || 0) * item.quantity, 0);
-  const discount = appliedPromo
-    ? cart
-        .filter((item) => Number(item.product.maKhuyenMai) === Number(appliedPromo.maKhuyenMai) && Number(item.product.phanTramGiam || 0) > 0)
-        .reduce((sum, item) => sum + ((Number(item.product.gia) || 0) - finalPrice(item.product)) * item.quantity, 0)
-    : cart.reduce((sum, item) => sum + ((Number(item.product.gia) || 0) - finalPrice(item.product)) * item.quantity, 0);
-  const total = cart.reduce((sum, item) => sum + finalPrice(item.product) * item.quantity, 0);
+  const discount = cart.reduce((sum, item) => sum + ((Number(item.product.gia) || 0) - finalPrice(item.product)) * item.quantity, 0);
+  const total = Math.max(0, subtotal - discount);
   const invalidStockItem = cart.find((item) => item.quantity > Math.max(0, Number(item.product.soLuong) || 0));
   const appliedPromoItemCount = appliedPromo
     ? cart.filter((item) => Number(item.product.maKhuyenMai) === Number(appliedPromo.maKhuyenMai) && Number(item.product.phanTramGiam || 0) > 0).length
