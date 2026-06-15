@@ -1,3 +1,4 @@
+import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
 import type { ProductStats, RevenueStats } from "@/types/management";
@@ -134,44 +135,70 @@ export const exportPDF = async (
 ) => {
   const now = new Date().toLocaleString("vi-VN");
 
+  // Loading overlay — covers the page so the report element isn't seen by the user
+  const overlay = document.createElement("div");
+  overlay.style.cssText =
+    "position:fixed;inset:0;background:rgba(255,255,255,0.97);z-index:99998;display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif;font-size:14px;color:#64748b;font-weight:600";
+  overlay.textContent = "Đang tạo PDF...";
+  document.body.appendChild(overlay);
+
+  // Report element — visible (no visibility:hidden) so html2canvas can render it
   const el = document.createElement("div");
   el.style.cssText =
-    "position:fixed;top:0;left:0;width:794px;background:#fff;z-index:-1;pointer-events:none;visibility:hidden";
+    "position:fixed;top:0;left:0;width:794px;background:#fff;z-index:99999;pointer-events:none";
   el.innerHTML = buildPrintHTML(revenueStats, productStats, now);
   document.body.appendChild(el);
 
-  // Let the browser lay out the element
-  await new Promise<void>((resolve) => setTimeout(resolve, 200));
+  await new Promise<void>((resolve) => setTimeout(resolve, 300));
 
-  return new Promise<void>((resolve, reject) => {
-    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  try {
+    // Hide overlay so only the report is captured
+    overlay.style.display = "none";
 
-    doc.html(el, {
-      callback: (pdf) => {
-        try {
-          pdf.save("bao-cao-thong-ke.pdf");
-          resolve();
-        } catch (err) {
-          reject(err);
-        } finally {
-          if (document.body.contains(el)) document.body.removeChild(el);
-        }
-      },
-      x: 5,
-      y: 5,
-      width: 200,
+    const canvas = await html2canvas(el, {
+      scale: 1.5,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: "#ffffff",
+      logging: false,
+      width: 794,
       windowWidth: 794,
-      html2canvas: {
-        scale: 0.75,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-        removeContainer: true,
-      },
-      autoPaging: "text",
     });
-  });
+
+    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const canvasPageH = Math.floor((canvas.width * pageH) / pageW);
+    let srcY = 0;
+    let isFirst = true;
+
+    while (srcY < canvas.height) {
+      if (!isFirst) pdf.addPage();
+
+      const pageCanvas = document.createElement("canvas");
+      pageCanvas.width = canvas.width;
+      pageCanvas.height = Math.min(canvasPageH, canvas.height - srcY);
+
+      const ctx = pageCanvas.getContext("2d")!;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+      ctx.drawImage(
+        canvas, 0, srcY, canvas.width, pageCanvas.height,
+        0, 0, canvas.width, pageCanvas.height
+      );
+
+      const renderedH = (pageCanvas.height * pageW) / canvas.width;
+      pdf.addImage(pageCanvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, pageW, renderedH);
+
+      srcY += canvasPageH;
+      isFirst = false;
+    }
+
+    pdf.save("bao-cao-thong-ke.pdf");
+  } finally {
+    if (document.body.contains(el)) document.body.removeChild(el);
+    if (document.body.contains(overlay)) document.body.removeChild(overlay);
+  }
 };
 
 // --- Print window (existing) ---
