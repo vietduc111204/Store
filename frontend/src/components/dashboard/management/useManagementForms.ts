@@ -1,4 +1,5 @@
 import { useState } from "react";
+import axios from "axios";
 import { toast } from "sonner";
 import api from "@/libs/axios";
 import type {
@@ -122,9 +123,18 @@ export const useManagementForms = ({
 
   const removeRecord = async (url: string, message: string, onDeleted: () => void) => {
     if (!window.confirm("Bạn chắc chắn muốn xóa dữ liệu này?")) return;
-    await api.delete(url);
-    onDeleted();
-    toast.success(message);
+    try {
+      await api.delete(url);
+      onDeleted();
+      toast.success(message);
+    } catch (error) {
+      const msg = axios.isAxiosError(error) ? error.response?.data?.message : null;
+      if (msg?.includes("foreign key") || msg?.includes("violates")) {
+        toast.error("Không thể xóa vì dữ liệu này đang được sử dụng ở nơi khác");
+      } else {
+        toast.error(msg || "Không xóa được dữ liệu");
+      }
+    }
   };
 
   const openCategoryForm = (mode: FormMode, category?: Category) => {

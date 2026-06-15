@@ -23,7 +23,21 @@ const customerHandlers = createCrudHandlers(customerConfig, 'Customer');
 export const listCustomers = customerHandlers.list;
 export const getCustomerById = customerHandlers.getById;
 export const updateCustomer = customerHandlers.update;
-export const deleteCustomer = customerHandlers.remove;
+export const deleteCustomer = async (req, res) => {
+  try {
+    const ordersResult = await pool.query(
+      'select 1 from "DonHang" where "maKhachHang" = $1 limit 1',
+      [req.params.id]
+    );
+    if (ordersResult.rowCount) {
+      return res.status(409).json({ message: 'Không thể xóa khách hàng đang có đơn hàng' });
+    }
+    return customerHandlers.remove(req, res);
+  } catch (error) {
+    console.error('Delete customer failed', error);
+    return res.status(500).json({ message: error.message });
+  }
+};
 
 export const createCustomer = async (req, res) => {
   const client = await pool.connect();
