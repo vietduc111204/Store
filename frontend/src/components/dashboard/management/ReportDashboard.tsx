@@ -1,26 +1,11 @@
-import { useState } from "react";
-import { FileSpreadsheet, FileText, Printer } from "lucide-react";
-import { toast } from "sonner";
+import { FileSpreadsheet, Printer } from "lucide-react";
 import type { ProductStats, RevenueStats } from "@/types/management";
-import { exportExcel, exportPDF, printReport } from "./reportExport";
+import { exportExcel, printReport } from "./reportExport";
 import { formatMoney, PAGE_SIZE, PaginationFooter, StatBox, usePaginatedRows } from "./shared";
 
 const ReportDashboard = ({ revenueStats, productStats }: { revenueStats: RevenueStats; productStats: ProductStats }) => {
   const bestSelling = productStats.bestSelling || [];
   const { currentPage, pageRows, pageSize, setPage, totalPages } = usePaginatedRows(bestSelling, PAGE_SIZE);
-  const [pdfLoading, setPdfLoading] = useState(false);
-
-  const handleExportPDF = async () => {
-    setPdfLoading(true);
-    try {
-      await exportPDF(revenueStats, productStats);
-    } catch (err) {
-      console.error("PDF export error:", err);
-      toast.error("Không xuất được PDF");
-    } finally {
-      setPdfLoading(false);
-    }
-  };
 
   return (
     <div>
@@ -31,14 +16,6 @@ const ReportDashboard = ({ revenueStats, productStats }: { revenueStats: Revenue
         >
           <Printer size={16} />
           In báo cáo
-        </button>
-        <button
-          className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-black text-red-700 shadow-sm hover:bg-red-100 disabled:opacity-60"
-          disabled={pdfLoading}
-          onClick={handleExportPDF}
-        >
-          <FileText size={16} />
-          {pdfLoading ? "Đang xuất..." : "Xuất PDF"}
         </button>
         <button
           className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-black text-white shadow-sm hover:bg-emerald-700"

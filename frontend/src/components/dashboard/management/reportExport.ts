@@ -1,5 +1,3 @@
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
 import type { ProductStats, RevenueStats } from "@/types/management";
 
@@ -38,6 +36,7 @@ const buildPrintHTML = (
   .stat-box .lbl{font-size:10px;color:#64748b;text-transform:uppercase;font-weight:700}
   .stat-box .val{font-size:17px;font-weight:900;margin-top:3px}
   .total-row{background:#f0f9ff;font-weight:700}
+  @media print{body{padding:16px}@page{size:A4;margin:15mm}}
 </style></head><body>
 <h1>SmartHome — Báo cáo thống kê</h1>
 <p class="meta">Xuất lúc: ${now}</p>
@@ -129,79 +128,6 @@ ${bestSelling.length ? `
 </body></html>`;
 };
 
-export const exportPDF = async (
-  revenueStats: RevenueStats,
-  productStats: ProductStats
-) => {
-  const now = new Date().toLocaleString("vi-VN");
-
-  // Loading overlay — covers the page so the report element isn't seen by the user
-  const overlay = document.createElement("div");
-  overlay.style.cssText =
-    "position:fixed;inset:0;background:rgba(255,255,255,0.97);z-index:99998;display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif;font-size:14px;color:#64748b;font-weight:600";
-  overlay.textContent = "Đang tạo PDF...";
-  document.body.appendChild(overlay);
-
-  // Report element — visible (no visibility:hidden) so html2canvas can render it
-  const el = document.createElement("div");
-  el.style.cssText =
-    "position:fixed;top:0;left:0;width:794px;background:#fff;z-index:99999;pointer-events:none";
-  el.innerHTML = buildPrintHTML(revenueStats, productStats, now);
-  document.body.appendChild(el);
-
-  await new Promise<void>((resolve) => setTimeout(resolve, 300));
-
-  try {
-    // Hide overlay so only the report is captured
-    overlay.style.display = "none";
-
-    const canvas = await html2canvas(el, {
-      scale: 1.5,
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: "#ffffff",
-      logging: false,
-      width: 794,
-      windowWidth: 794,
-    });
-
-    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-    const pageW = pdf.internal.pageSize.getWidth();
-    const pageH = pdf.internal.pageSize.getHeight();
-    const canvasPageH = Math.floor((canvas.width * pageH) / pageW);
-    let srcY = 0;
-    let isFirst = true;
-
-    while (srcY < canvas.height) {
-      if (!isFirst) pdf.addPage();
-
-      const pageCanvas = document.createElement("canvas");
-      pageCanvas.width = canvas.width;
-      pageCanvas.height = Math.min(canvasPageH, canvas.height - srcY);
-
-      const ctx = pageCanvas.getContext("2d")!;
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-      ctx.drawImage(
-        canvas, 0, srcY, canvas.width, pageCanvas.height,
-        0, 0, canvas.width, pageCanvas.height
-      );
-
-      const renderedH = (pageCanvas.height * pageW) / canvas.width;
-      pdf.addImage(pageCanvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, pageW, renderedH);
-
-      srcY += canvasPageH;
-      isFirst = false;
-    }
-
-    pdf.save("bao-cao-thong-ke.pdf");
-  } finally {
-    if (document.body.contains(el)) document.body.removeChild(el);
-    if (document.body.contains(overlay)) document.body.removeChild(overlay);
-  }
-};
-
-// --- Print window (existing) ---
 export const printReport = (
   revenueStats: RevenueStats,
   productStats: ProductStats
@@ -215,7 +141,6 @@ export const printReport = (
   win.print();
 };
 
-// --- Excel export ---
 export const exportExcel = (
   revenueStats: RevenueStats,
   productStats: ProductStats
@@ -249,10 +174,9 @@ export const exportExcel = (
 
   const bestSelling = productStats.bestSelling || [];
   const summary = productStats.summary;
-  const rows: (string | number)[][] = [
-    [`Thống kê sản phẩm — ${now}`],
-    [],
-  ];
+  const rows: (string | number)[][] = [`Thống kê sản phẩm — ${now}`, []].map((r) =>
+    typeof r === "string" ? [r] : r
+  );
   if (summary) {
     rows.push(["Tổng sản phẩm", summary.tongSanPham]);
     rows.push(["Tổng tồn kho", summary.tongTonKho]);
