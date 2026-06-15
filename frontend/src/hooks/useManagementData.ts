@@ -63,6 +63,27 @@ export const useManagementData = (activeView: ViewKey) => {
     return res.data;
   };
 
+  const promotionsWithProducts = (promotionRows: Promotion[], productRows: Product[]) =>
+    promotionRows.map((promotion) => {
+      const assignedProducts = productRows.filter((product) => product.maKhuyenMai === promotion.maKhuyenMai);
+
+      if (!assignedProducts.length) {
+        return {
+          ...promotion,
+          soSanPhamApDung: promotion.soSanPhamApDung || 0,
+          sanPhamApDung: promotion.sanPhamApDung || "",
+          maSanPhamApDung: promotion.maSanPhamApDung || "",
+        };
+      }
+
+      return {
+        ...promotion,
+        soSanPhamApDung: assignedProducts.length,
+        sanPhamApDung: assignedProducts.map((product) => product.tenSanPham).join(", "),
+        maSanPhamApDung: assignedProducts.map((product) => product.maSanPham).join(","),
+      };
+    });
+
   const loadReports = async () => {
     const [revenueRes, productRes] = await Promise.all([
       api.get<RevenueStats>("/thong-ke/doanh-thu"),
@@ -91,7 +112,8 @@ export const useManagementData = (activeView: ViewKey) => {
         resultCount = orderRows.length;
       }
       if (activeView === "promotions") {
-        const [promotionRows] = await Promise.all([loadPromotions(q), loadProducts()]);
+        const [promotionRows, productRows] = await Promise.all([loadPromotions(q), loadProducts()]);
+        setPromotions(promotionsWithProducts(promotionRows, productRows));
         resultCount = promotionRows.length;
       }
       if (activeView === "reports") await loadReports();

@@ -97,6 +97,29 @@ export const useManagementForms = ({
     await reloadActiveView();
   };
 
+  const selectedProductIds = (value?: string) =>
+    new Set(
+      String(value || "")
+        .split(",")
+        .map((item) => Number(item.trim()))
+        .filter((id) => Number.isInteger(id) && id > 0)
+    );
+
+  const syncPromotionProductAssignments = async (promotionId: number, selectedValue?: string) => {
+    const selected = selectedProductIds(selectedValue);
+    const affectedProducts = products.filter(
+      (product) => selected.has(product.maSanPham) || Number(product.maKhuyenMai) === Number(promotionId)
+    );
+
+    await Promise.all(
+      affectedProducts.map((product) =>
+        api.put(`/san-pham/sua/${product.maSanPham}`, {
+          maKhuyenMai: selected.has(product.maSanPham) ? String(promotionId) : "",
+        })
+      )
+    );
+  };
+
   const removeRecord = async (url: string, message: string, onDeleted: () => void) => {
     if (!window.confirm("Bạn chắc chắn muốn xóa dữ liệu này?")) return;
     await api.delete(url);
@@ -329,8 +352,11 @@ export const useManagementForms = ({
           return;
         }
 
-        if (mode === "create") await api.post("/khuyen-mai/them", values);
-        else await api.put(`/khuyen-mai/sua/${promotion?.maKhuyenMai}`, values);
+        const res = mode === "create"
+          ? await api.post<Promotion>("/khuyen-mai/them", values)
+          : await api.put<Promotion>(`/khuyen-mai/sua/${promotion?.maKhuyenMai}`, values);
+        const promotionId = Number(res.data.maKhuyenMai || promotion?.maKhuyenMai);
+        if (promotionId) await syncPromotionProductAssignments(promotionId, values.maSanPhamApDung);
         await saveAndReload("Đã lưu khuyến mãi");
       },
     });
