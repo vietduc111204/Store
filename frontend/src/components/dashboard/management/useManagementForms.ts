@@ -232,16 +232,18 @@ export const useManagementForms = ({
       submitLabel: mode === "create" ? "Thêm" : "Lưu",
       fields: [
         { name: "tenNhanVien", label: "Tên nhân viên" },
+        { name: "email", label: "Email" },
         { name: "soDienThoai", label: "Số điện thoại" },
         { name: "diaChi", label: "Địa chỉ" },
-        ...(mode === "create" ? [{ name: "email", label: "Email" }, { name: "password", label: "Mat khau", type: "password" as const }] : []),
-        { name: "maQuyen", label: "Ma quyen", type: "number", disabled: true },
+        ...(mode === "create" ? [{ name: "password", label: "Mật khẩu", type: "password" as const }] : []),
+        { name: "maQuyen", label: "Mã quyền", type: "number", disabled: true },
       ],
       values: {
         tenNhanVien: fieldValue(employee?.tenNhanVien),
+        email: fieldValue(employee?.email),
         soDienThoai: fieldValue(employee?.soDienThoai),
         diaChi: fieldValue(employee?.diaChi),
-        ...(mode === "create" ? { email: "", password: "" } : {}),
+        ...(mode === "create" ? { password: "" } : {}),
         maQuyen: "2",
       },
       onSubmit: async (values) => {

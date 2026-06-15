@@ -75,6 +75,7 @@ export type Employee = {
   soDienThoai?: string | null;
   diaChi?: string | null;
   maQuyen?: number | null;
+  email?: string | null;
 };
 
 export type Order = {

@@ -14,13 +14,46 @@ const employeeConfig = {
   required: ['tenNhanVien'],
   search: ['tenNhanVien', 'soDienThoai', 'diaChi'],
   orderBy: 'maNhanVien',
+  alias: 'nv',
+  listSelect: 'nv."maNhanVien", nv."tenNhanVien", nv."soDienThoai", nv."diaChi", nv."maQuyen", tk."email"',
+  listFrom: '"NhanVien" nv left join "TaiKhoan" tk on tk."maNhanVien" = nv."maNhanVien"',
 };
 
 const employeeHandlers = createCrudHandlers(employeeConfig, 'Employee');
 
 export const listEmployees = employeeHandlers.list;
 export const getEmployeeById = employeeHandlers.getById;
-export const updateEmployee = employeeHandlers.update;
+export const updateEmployee = async (req, res) => {
+  const { email, ...rest } = req.body;
+  const client = await pool.connect();
+  try {
+    await client.query('begin');
+    const fields = ['tenNhanVien', 'soDienThoai', 'diaChi', 'maQuyen'];
+    const updates = fields.filter((f) => Object.prototype.hasOwnProperty.call(rest, f));
+    if (updates.length) {
+      const values = updates.map((f) => (rest[f] === '' ? null : rest[f]));
+      const setSql = updates.map((f, i) => `"${f}" = $${i + 1}`).join(', ');
+      await client.query(
+        `update "NhanVien" set ${setSql} where "maNhanVien" = $${updates.length + 1}`,
+        [...values, req.params.id]
+      );
+    }
+    if (email !== undefined && email !== '') {
+      await client.query(
+        'update "TaiKhoan" set "email" = $1 where "maNhanVien" = $2',
+        [email, req.params.id]
+      );
+    }
+    await client.query('commit');
+    res.json({ message: 'Cap nhat thanh cong' });
+  } catch (error) {
+    await client.query('rollback');
+    console.error('Update employee failed', error);
+    res.status(500).json({ message: error.message });
+  } finally {
+    client.release();
+  }
+};
 export const deleteEmployee = async (req, res) => {
   try {
     const accountResult = await pool.query(

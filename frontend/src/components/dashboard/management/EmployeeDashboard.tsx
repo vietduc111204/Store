@@ -20,6 +20,7 @@ const EmployeeDashboard = ({ employees, query, onQueryChange, onCreate, onEdit, 
         <thead className="bg-slate-100 text-left text-xs font-bold uppercase text-slate-600">
           <tr>
             <th className="px-8 py-5">Nhân viên</th>
+            <th className="px-6 py-5">Email</th>
             <th className="px-6 py-5">Số điện thoại</th>
             <th className="px-6 py-5">Địa chỉ</th>
             <th className="px-6 py-5">Thao tác</th>
@@ -29,12 +30,13 @@ const EmployeeDashboard = ({ employees, query, onQueryChange, onCreate, onEdit, 
           {pageRows.map((employee) => (
             <tr className="border-t border-slate-100" key={employee.maNhanVien}>
               <td className="px-8 py-4 font-bold">{employee.tenNhanVien}</td>
+              <td className="px-6 py-4 text-slate-600">{employee.email || "-"}</td>
               <td className="px-6 py-4">{employee.soDienThoai || "-"}</td>
               <td className="px-6 py-4">{employee.diaChi || "-"}</td>
               <td className="px-6 py-4"><RowActions onDelete={() => onDelete(employee)} onEdit={() => onEdit(employee)} /></td>
             </tr>
           ))}
-          {employees.length === 0 ? <EmptyRow colSpan={4} /> : null}
+          {employees.length === 0 ? <EmptyRow colSpan={5} /> : null}
         </tbody>
       </DataShell>
     </>
