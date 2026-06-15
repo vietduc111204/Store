@@ -15,7 +15,7 @@ type NoticeItem =
   | { type: "notice"; data: FavoriteProductNotice }
   | { type: "promo"; data: Promotion };
 
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 4;
 
 const AccountNoticeList = ({
   favoriteNotices,
