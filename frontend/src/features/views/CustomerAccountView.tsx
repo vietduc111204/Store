@@ -99,7 +99,16 @@ export const CustomerAccountView = () => {
           api.get<Promotion[]>("/khuyen-mai/tim-kiem", { params: { activeOnly: true } }),
           api.get<Product[]>("/san-pham/tim-kiem"),
         ]);
-        setPromotions(promotionRes.data);
+        const enrichedPromotions = promotionRes.data.map((promotion) => {
+          const assigned = productRes.data.filter((p) => p.maKhuyenMai === promotion.maKhuyenMai);
+          if (!assigned.length) return promotion;
+          return {
+            ...promotion,
+            soSanPhamApDung: assigned.length,
+            sanPhamApDung: assigned.map((p) => p.tenSanPham).join(", "),
+          };
+        });
+        setPromotions(enrichedPromotions);
         setProducts(productRes.data);
       } catch (error) {
         console.error(error);

@@ -25,12 +25,21 @@ export const useStorefrontData = () => {
         const soldByProduct = new Map(
           (statsRes.data.bestSelling || []).map((item) => [item.maSanPham, item.soLuongDaBan])
         );
-        setProducts(productRes.data.map((product) => ({
+        const enrichedProducts = productRes.data.map((product) => ({
           ...product,
           soLuongDaBan: soldByProduct.get(product.maSanPham) || 0,
-        })));
+        }));
+        setProducts(enrichedProducts);
         setCategories(categoryRes.data);
-        setPromotions(promotionRes.data);
+        setPromotions(promotionRes.data.map((promotion) => {
+          const assigned = enrichedProducts.filter((p) => p.maKhuyenMai === promotion.maKhuyenMai);
+          if (!assigned.length) return promotion;
+          return {
+            ...promotion,
+            soSanPhamApDung: assigned.length,
+            sanPhamApDung: assigned.map((p) => p.tenSanPham).join(", "),
+          };
+        }));
       } catch (error) {
         console.error(error);
         toast.error("Không tải được dữ liệu cửa hàng");
