@@ -168,7 +168,7 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
             </div>
           </section>
         </div>
-        <aside className="h-fit rounded-lg bg-[#e4f2ff] p-6 ring-1 ring-sky-200">
+        <aside className="h-fit rounded-lg bg-[#e4f2ff] p-6 ring-1 ring-sky-200" data-section="order-summary">
           <h2 className="text-2xl font-black">Tổng đơn hàng</h2>
           <div className="mt-4 space-y-3">
             {cart.map((item) => {
