@@ -19,7 +19,8 @@
     "accounts:sync": "node scripts/syncAccounts.js",
     "db:inspect": "node scripts/inspectConnection.js",
     "promotions:inspect": "node scripts/inspectPromotions.js",
-    "promotions:sync": "node scripts/syncExistingPromotions.js"
+    "promotions:sync": "node scripts/syncExistingPromotions.js",
+    "db:migrate-images": "node scripts/migrateImageColumns.js"
   },
   "type": "module",
   "keywords": [],
