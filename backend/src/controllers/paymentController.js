@@ -1,11 +1,11 @@
-import PayOS from '@payos/node';
+import { PayOS } from '@payos/node';
 import pool from '../libs/db.js';
 
-const payos = new PayOS(
-  process.env.CLIENT_ID,
-  process.env.API_KEY,
-  process.env.CHECKSUM_KEY
-);
+const payos = new PayOS({
+  clientId: process.env.CLIENT_ID,
+  apiKey: process.env.API_KEY,
+  checksumKey: process.env.CHECKSUM_KEY,
+});
 
 export const createPaymentLink = async (req, res) => {
   const maDonHang = Number(req.body.maDonHang);
@@ -26,7 +26,7 @@ export const createPaymentLink = async (req, res) => {
     }
 
     const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
-    const paymentLink = await payos.createPaymentLink({
+    const paymentLink = await payos.paymentRequests.create({
       orderCode: maDonHang,
       amount: tongGia,
       description: `DH${maDonHang}`,
@@ -41,16 +41,15 @@ export const createPaymentLink = async (req, res) => {
   }
 };
 
-export const receiveWebhook = (req, res) => {
+export const receiveWebhook = async (req, res) => {
   try {
-    const webhookData = payos.verifyPaymentWebhookData(req.body);
-    if (webhookData.code === '00') {
-      const maDonHang = webhookData.orderCode;
-      pool
+    const webhookData = await payos.webhooks.verify(req.body);
+    if (req.body.code === '00' && webhookData?.orderCode) {
+      await pool
         .query(
           `update "DonHang" set "trangThai" = $1
            where "maDonHang" = $2 and "trangThai" not in ($3, $4)`,
-          ['Đã thanh toán', maDonHang, 'Đã hủy', 'Đã thanh toán']
+          ['Đã thanh toán', webhookData.orderCode, 'Đã hủy', 'Đã thanh toán']
         )
         .catch((err) => console.error('Update order status from webhook failed', err));
     }
