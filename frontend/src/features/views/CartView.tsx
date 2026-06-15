@@ -18,8 +18,16 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
   const [appliedPromo, setAppliedPromo] = useState<Promotion | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"bank" | "cod">("cod");
   const [form, setForm] = useState({ name: user?.tenThanhVien || "", phone: user?.soDienThoaiKhachHang || "", address: user?.diaChiKhachHang || "", city: "Hồ Chí Minh", district: "Quận 1" });
-  const subtotal = cart.reduce((sum, item) => sum + (Number(item.product.gia) || 0) * item.quantity, 0);
-  const discount = cart.reduce((sum, item) => sum + ((Number(item.product.gia) || 0) - finalPrice(item.product)) * item.quantity, 0);
+  const isPromoItem = (item: CartItem) =>
+    !!appliedPromo &&
+    Number(item.product.maKhuyenMai) === Number(appliedPromo.maKhuyenMai) &&
+    Number(item.product.phanTramGiam || 0) > 0;
+  const promoFinalPrice = (item: CartItem) =>
+    finalPrice(item.product) * (1 - Number(item.product.phanTramGiam || 0) / 100);
+  const subtotal = cart.reduce((sum, item) => sum + finalPrice(item.product) * item.quantity, 0);
+  const discount = cart
+    .filter(isPromoItem)
+    .reduce((sum, item) => sum + finalPrice(item.product) * (Number(item.product.phanTramGiam || 0) / 100) * item.quantity, 0);
   const total = Math.max(0, subtotal - discount);
   const invalidStockItem = cart.find((item) => item.quantity > Math.max(0, Number(item.product.soLuong) || 0));
   const appliedPromoItemCount = appliedPromo
@@ -169,17 +177,29 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
           <div className="mt-4 space-y-3">
             {cart.map((item) => {
               const pct = Number(item.product.phanTramGiam || 0);
-              const isPromoItem = appliedPromo && Number(item.product.maKhuyenMai) === Number(appliedPromo.maKhuyenMai) && pct > 0;
+              const isItemPromo = isPromoItem(item);
+              const displayPrice = isItemPromo ? promoFinalPrice(item) : finalPrice(item.product);
               return (
                 <div className="flex items-start justify-between gap-3 text-sm" key={item.product.maSanPham}>
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold leading-tight text-slate-800">{item.product.tenSanPham}</p>
                     <p className="mt-0.5 text-xs text-slate-500">
-                      SL: {item.quantity} · {formatMoney(finalPrice(item.product))}/sp
-                      {pct > 0 && <span className={`ml-1 font-bold ${isPromoItem ? "text-red-600" : "text-slate-400"}`}>(-{pct}%{isPromoItem ? ` ${promotionCodeText(appliedPromo!)}` : ""})</span>}
+                      SL: {item.quantity} ·{" "}
+                      {isItemPromo ? (
+                        <>
+                          <span className="line-through">{formatMoney(finalPrice(item.product))}</span>
+                          {" → "}
+                          <span className="font-bold text-red-600">{formatMoney(promoFinalPrice(item))}/sp <span className="whitespace-nowrap">(-{pct}% {promotionCodeText(appliedPromo!)})</span></span>
+                        </>
+                      ) : (
+                        <>
+                          {formatMoney(finalPrice(item.product))}/sp
+                          {pct > 0 && <span className="ml-1 font-bold text-slate-400">(-{pct}%)</span>}
+                        </>
+                      )}
                     </p>
                   </div>
-                  <p className="shrink-0 font-bold text-slate-800">{formatMoney(finalPrice(item.product) * item.quantity)}</p>
+                  <p className="shrink-0 font-bold text-slate-800">{formatMoney(displayPrice * item.quantity)}</p>
                 </div>
               );
             })}
