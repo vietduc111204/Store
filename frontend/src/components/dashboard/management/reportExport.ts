@@ -1,110 +1,201 @@
-import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import * as XLSX from "xlsx";
 import type { ProductStats, RevenueStats } from "@/types/management";
 
-const buildReportHTML = (revenueStats: RevenueStats, productStats: ProductStats, now: string) => {
+const fmt = (v?: string | number | null) =>
+  `${Number(v || 0).toLocaleString("vi-VN")} đ`;
+
+const buildPrintHTML = (
+  revenueStats: RevenueStats,
+  productStats: ProductStats,
+  now: string
+) => {
   const revenueByStatus = revenueStats.revenueByStatus || [];
   const revenueByDay = revenueStats.revenueByDay || [];
   const bestSelling = productStats.bestSelling || [];
   const byCategory = productStats.byCategory || [];
   const summary = productStats.summary;
-
-  const fmt = (v?: string | number | null) => `${Number(v || 0).toLocaleString("vi-VN")} đ`;
-  const row = (cells: string[]) => `<tr>${cells.map((c) => `<td style="padding:7px 10px;border-bottom:1px solid #f1f5f9">${c}</td>`).join("")}</tr>`;
-  const thead = (cols: string[]) =>
-    `<thead><tr>${cols.map((c) => `<th style="padding:7px 10px;background:#f8fafc;font-size:11px;text-transform:uppercase;color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0">${c}</th>`).join("")}</tr></thead>`;
-  const table = (cols: string[], rows: string[]) =>
-    `<table style="width:100%;border-collapse:collapse;margin-top:12px">${thead(cols)}<tbody>${rows.join("")}</tbody></table>`;
-  const section = (title: string, body: string) =>
-    `<div style="margin-bottom:28px"><h2 style="font-size:15px;font-weight:800;color:#0f172a;margin-bottom:4px">${title}</h2>${body}</div>`;
-
   const totalOrders = revenueByStatus.reduce((s, r) => s + r.soDonHang, 0);
 
-  return `<div style="font-family:Arial,sans-serif;font-size:13px;color:#1e293b;padding:36px;width:794px;background:#fff">
-  <h1 style="font-size:22px;font-weight:900;color:#0879a8;margin:0">SmartHome — Báo cáo thống kê</h1>
-  <p style="color:#64748b;font-size:12px;margin-top:4px">Xuất lúc: ${now}</p>
-  <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0" />
+  const tdStyle = `padding:7px 10px;border-bottom:1px solid #f1f5f9;font-size:12px`;
+  const thStyle = `padding:7px 10px;background:#f8fafc;font-size:10px;text-transform:uppercase;color:#64748b;text-align:left;border-bottom:1px solid #e2e8f0;font-weight:700`;
 
-  ${section(
-    "Doanh thu",
-    `<p style="font-size:26px;font-weight:900;color:#0879a8;margin:8px 0 12px">${fmt(revenueStats.totalRevenue)}</p>
-    ${table(
-      ["Trạng thái", "Số đơn", "Doanh thu"],
-      [
-        ...revenueByStatus.map((r) => row([r.trangThai, String(r.soDonHang), fmt(r.doanhThu)])),
-        `<tr style="background:#f0f9ff;font-weight:700"><td style="padding:7px 10px">Tổng cộng</td><td style="padding:7px 10px">${totalOrders}</td><td style="padding:7px 10px">${fmt(revenueStats.totalRevenue)}</td></tr>`,
-      ]
-    )}`
-  )}
+  return `<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8"/>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,sans-serif;font-size:13px;color:#1e293b;padding:32px;width:794px}
+  h1{font-size:20px;font-weight:900;color:#0879a8}
+  h2{font-size:14px;font-weight:800;color:#0f172a;margin:20px 0 8px}
+  h3{font-size:13px;font-weight:800;margin:16px 0 6px}
+  table{width:100%;border-collapse:collapse;margin-bottom:16px}
+  .revenue-total{font-size:24px;font-weight:900;color:#0879a8;margin:8px 0 12px}
+  .meta{color:#64748b;font-size:11px;margin-top:4px}
+  hr{border:none;border-top:1px solid #e2e8f0;margin:18px 0}
+  .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:8px 0 16px}
+  .stat-box{border:1px solid #e2e8f0;border-radius:6px;padding:10px 12px}
+  .stat-box .lbl{font-size:10px;color:#64748b;text-transform:uppercase;font-weight:700}
+  .stat-box .val{font-size:17px;font-weight:900;margin-top:3px}
+  .total-row{background:#f0f9ff;font-weight:700}
+</style></head><body>
+<h1>SmartHome — Báo cáo thống kê</h1>
+<p class="meta">Xuất lúc: ${now}</p>
+<hr/>
 
-  ${revenueByDay.length ? section(
-    "Doanh thu theo ngày",
-    table(
-      ["Ngày", "Số đơn", "Doanh thu"],
-      revenueByDay.map((d) => row([d.ngay, String(d.soDonHang), fmt(d.doanhThu)]))
-    )
-  ) : ""}
+<h2>Doanh thu</h2>
+<p class="revenue-total">${fmt(revenueStats.totalRevenue)}</p>
+${revenueByStatus.length ? `
+<table>
+  <thead><tr>
+    <th style="${thStyle}">Trạng thái</th>
+    <th style="${thStyle}">Số đơn</th>
+    <th style="${thStyle}">Doanh thu</th>
+  </tr></thead>
+  <tbody>
+    ${revenueByStatus.map((r) => `<tr>
+      <td style="${tdStyle}">${r.trangThai}</td>
+      <td style="${tdStyle}">${r.soDonHang}</td>
+      <td style="${tdStyle}">${fmt(r.doanhThu)}</td>
+    </tr>`).join("")}
+    <tr class="total-row">
+      <td style="${tdStyle}">Tổng cộng</td>
+      <td style="${tdStyle}">${totalOrders}</td>
+      <td style="${tdStyle}">${fmt(revenueStats.totalRevenue)}</td>
+    </tr>
+  </tbody>
+</table>` : ""}
 
-  ${section(
-    "Thống kê sản phẩm",
-    `${summary ? `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:12px 0">
-      ${[["Tổng sản phẩm", summary.tongSanPham], ["Tồn kho", summary.tongTonKho], ["Giá trung bình", fmt(summary.giaTrungBinh)]]
-        .map(([label, value]) => `<div style="border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px">
-          <div style="font-size:11px;color:#64748b;text-transform:uppercase;font-weight:700">${label}</div>
-          <div style="font-size:18px;font-weight:900;margin-top:4px">${value}</div>
-        </div>`).join("")}
-    </div>` : ""}
-    ${byCategory.length ? table(
-      ["Danh mục", "Số sản phẩm", "Tồn kho"],
-      byCategory.map((c) => row([c.tenDanhMuc, String(c.soSanPham), String(c.tongTonKho)]))
-    ) : ""}
-    ${bestSelling.length ? `<h3 style="font-size:14px;font-weight:800;margin-top:20px;margin-bottom:4px">Sản phẩm bán chạy</h3>
-    ${table(
-      ["#", "Sản phẩm", "Đã bán", "Doanh thu"],
-      bestSelling.map((p, i) => row([String(i + 1), p.tenSanPham, String(p.soLuongDaBan), fmt(p.doanhThu)]))
-    )}` : ""}
-  `)}
-</div>`;
+${revenueByDay.length ? `
+<h2>Doanh thu theo ngày</h2>
+<table>
+  <thead><tr>
+    <th style="${thStyle}">Ngày</th>
+    <th style="${thStyle}">Số đơn</th>
+    <th style="${thStyle}">Doanh thu</th>
+  </tr></thead>
+  <tbody>
+    ${revenueByDay.map((d) => `<tr>
+      <td style="${tdStyle}">${d.ngay}</td>
+      <td style="${tdStyle}">${d.soDonHang}</td>
+      <td style="${tdStyle}">${fmt(d.doanhThu)}</td>
+    </tr>`).join("")}
+  </tbody>
+</table>` : ""}
+
+<h2>Thống kê sản phẩm</h2>
+${summary ? `
+<div class="stat-grid">
+  <div class="stat-box"><div class="lbl">Tổng sản phẩm</div><div class="val">${summary.tongSanPham}</div></div>
+  <div class="stat-box"><div class="lbl">Tồn kho</div><div class="val">${summary.tongTonKho}</div></div>
+  <div class="stat-box"><div class="lbl">Giá trung bình</div><div class="val">${fmt(summary.giaTrungBinh)}</div></div>
+</div>` : ""}
+
+${byCategory.length ? `
+<h3>Theo danh mục</h3>
+<table>
+  <thead><tr>
+    <th style="${thStyle}">Danh mục</th>
+    <th style="${thStyle}">Số sản phẩm</th>
+    <th style="${thStyle}">Tồn kho</th>
+  </tr></thead>
+  <tbody>
+    ${byCategory.map((c) => `<tr>
+      <td style="${tdStyle}">${c.tenDanhMuc}</td>
+      <td style="${tdStyle}">${c.soSanPham}</td>
+      <td style="${tdStyle}">${c.tongTonKho}</td>
+    </tr>`).join("")}
+  </tbody>
+</table>` : ""}
+
+${bestSelling.length ? `
+<h3>Sản phẩm bán chạy</h3>
+<table>
+  <thead><tr>
+    <th style="${thStyle}">#</th>
+    <th style="${thStyle}">Sản phẩm</th>
+    <th style="${thStyle}">Đã bán</th>
+    <th style="${thStyle}">Doanh thu</th>
+  </tr></thead>
+  <tbody>
+    ${bestSelling.map((p, i) => `<tr>
+      <td style="${tdStyle}">${i + 1}</td>
+      <td style="${tdStyle}">${p.tenSanPham}</td>
+      <td style="${tdStyle}">${p.soLuongDaBan}</td>
+      <td style="${tdStyle}">${fmt(p.doanhThu)}</td>
+    </tr>`).join("")}
+  </tbody>
+</table>` : ""}
+</body></html>`;
 };
 
-export const exportPDF = async (revenueStats: RevenueStats, productStats: ProductStats) => {
+export const exportPDF = async (
+  revenueStats: RevenueStats,
+  productStats: ProductStats
+) => {
   const now = new Date().toLocaleString("vi-VN");
+
   const el = document.createElement("div");
-  el.style.cssText = "position:absolute;left:-9999px;top:0;background:#fff";
-  el.innerHTML = buildReportHTML(revenueStats, productStats, now);
+  el.style.cssText =
+    "position:fixed;top:0;left:0;width:794px;background:#fff;z-index:-1;pointer-events:none;visibility:hidden";
+  el.innerHTML = buildPrintHTML(revenueStats, productStats, now);
   document.body.appendChild(el);
 
-  try {
-    const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
-    const pageW = pdf.internal.pageSize.getWidth();
-    const pageH = pdf.internal.pageSize.getHeight();
-    const imgH = (canvas.height * pageW) / canvas.width;
-    let remaining = imgH;
-    let offsetY = 0;
+  // Let the browser lay out the element
+  await new Promise<void>((resolve) => setTimeout(resolve, 200));
 
-    pdf.addImage(imgData, "PNG", 0, offsetY, pageW, imgH);
-    remaining -= pageH;
-    while (remaining > 0) {
-      offsetY -= pageH;
-      pdf.addPage();
-      pdf.addImage(imgData, "PNG", 0, offsetY, pageW, imgH);
-      remaining -= pageH;
-    }
+  return new Promise<void>((resolve, reject) => {
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
-    pdf.save("bao-cao-thong-ke.pdf");
-  } finally {
-    document.body.removeChild(el);
-  }
+    doc.html(el, {
+      callback: (pdf) => {
+        try {
+          pdf.save("bao-cao-thong-ke.pdf");
+          resolve();
+        } catch (err) {
+          reject(err);
+        } finally {
+          if (document.body.contains(el)) document.body.removeChild(el);
+        }
+      },
+      x: 5,
+      y: 5,
+      width: 200,
+      windowWidth: 794,
+      html2canvas: {
+        scale: 0.75,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+        removeContainer: true,
+      },
+      autoPaging: "text",
+    });
+  });
 };
 
-export const exportExcel = (revenueStats: RevenueStats, productStats: ProductStats) => {
+// --- Print window (existing) ---
+export const printReport = (
+  revenueStats: RevenueStats,
+  productStats: ProductStats
+) => {
+  const now = new Date().toLocaleString("vi-VN");
+  const win = window.open("", "_blank", "width=900,height=700");
+  if (!win) return;
+  win.document.write(buildPrintHTML(revenueStats, productStats, now));
+  win.document.close();
+  win.focus();
+  win.print();
+};
+
+// --- Excel export ---
+export const exportExcel = (
+  revenueStats: RevenueStats,
+  productStats: ProductStats
+) => {
   const wb = XLSX.utils.book_new();
   const now = new Date().toLocaleString("vi-VN");
 
-  // Sheet 1: Revenue
   const revenueByStatus = revenueStats.revenueByStatus || [];
   const totalOrders = revenueByStatus.reduce((s, r) => s + r.soDonHang, 0);
   const ws1 = XLSX.utils.aoa_to_sheet([
@@ -117,7 +208,6 @@ export const exportExcel = (revenueStats: RevenueStats, productStats: ProductSta
   ws1["!cols"] = [{ wch: 24 }, { wch: 14 }, { wch: 18 }];
   XLSX.utils.book_append_sheet(wb, ws1, "Doanh thu");
 
-  // Sheet 2: Revenue by day (if available)
   const revenueByDay = revenueStats.revenueByDay || [];
   if (revenueByDay.length) {
     const ws2 = XLSX.utils.aoa_to_sheet([
@@ -130,7 +220,6 @@ export const exportExcel = (revenueStats: RevenueStats, productStats: ProductSta
     XLSX.utils.book_append_sheet(wb, ws2, "Theo ngày");
   }
 
-  // Sheet 3: Products
   const bestSelling = productStats.bestSelling || [];
   const summary = productStats.summary;
   const rows: (string | number)[][] = [
@@ -153,7 +242,6 @@ export const exportExcel = (revenueStats: RevenueStats, productStats: ProductSta
   ws3["!cols"] = [{ wch: 6 }, { wch: 36 }, { wch: 12 }, { wch: 18 }];
   XLSX.utils.book_append_sheet(wb, ws3, "Sản phẩm");
 
-  // Sheet 4: By category (if available)
   const byCategory = productStats.byCategory || [];
   if (byCategory.length) {
     const ws4 = XLSX.utils.aoa_to_sheet([
