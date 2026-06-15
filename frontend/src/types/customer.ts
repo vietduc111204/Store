@@ -30,6 +30,7 @@ export type Promotion = {
   isActive?: boolean | null;
   soSanPhamApDung?: number | null;
   sanPhamApDung?: string | null;
+  maSanPhamApDung?: string | null;
 };
 
 export type CartItem = {

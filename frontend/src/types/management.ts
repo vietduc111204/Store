@@ -18,7 +18,7 @@ export type FormValues = Record<string, string>;
 export type FormField = {
   name: string;
   label: string;
-  type?: "text" | "number" | "select" | "file" | "image-list" | "password" | "date" | "textarea";
+  type?: "text" | "number" | "select" | "multi-select" | "file" | "image-list" | "password" | "date" | "textarea";
   options?: Array<{ label: string; value: string }>;
   disabled?: boolean;
   disabledWhen?: (values: FormValues) => boolean;
@@ -114,6 +114,7 @@ export type Promotion = {
   isActive?: boolean | null;
   soSanPhamApDung?: number | null;
   sanPhamApDung?: string | null;
+  maSanPhamApDung?: string | null;
 };
 
 export type RevenueStats = {

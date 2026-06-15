@@ -90,7 +90,10 @@ export const useManagementData = (activeView: ViewKey) => {
         const [orderRows] = await Promise.all([loadOrders(q), loadProducts(), loadPromotions(), loadCustomers()]);
         resultCount = orderRows.length;
       }
-      if (activeView === "promotions") resultCount = (await loadPromotions(q)).length;
+      if (activeView === "promotions") {
+        const [promotionRows] = await Promise.all([loadPromotions(q), loadProducts()]);
+        resultCount = promotionRows.length;
+      }
       if (activeView === "reports") await loadReports();
       if (q.trim() && resultCount === 0) toast.info("Không tìm thấy dữ liệu");
     } catch (error) {

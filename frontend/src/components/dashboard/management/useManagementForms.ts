@@ -65,6 +65,11 @@ export const useManagementForms = ({
     value: String(product.maSanPham),
   }));
 
+  const promotionProductOptions = products.map((product) => ({
+    label: `${product.tenSanPham}${product.tenKhuyenMai ? ` - hiện: ${product.tenKhuyenMai}` : ""}`,
+    value: String(product.maSanPham),
+  }));
+
   const customerOptions = customers.map((customer) => ({
     label: `${customer.tenThanhVien} - KH-${customer.maThanhVien}`,
     value: String(customer.maThanhVien),
@@ -292,19 +297,38 @@ export const useManagementForms = ({
         {
           name: "tenKhuyenMai",
           label: "Tên khuyến mãi",
-          helperText: "Sau khi tạo mã, gắn mã này trong form sản phẩm để chỉ áp dụng cho các sản phẩm được chọn.",
+          helperText: "Mã này chỉ áp dụng cho các sản phẩm được chọn bên dưới.",
         },
         { name: "phanTramGiam", label: "Phần trăm giảm", type: "number", min: 0, max: 100 },
         { name: "ngayBatDau", label: "Ngày bắt đầu", type: "date" },
         { name: "ngayKetThuc", label: "Ngày kết thúc", type: "date" },
+        {
+          name: "maSanPhamApDung",
+          label: "Sản phẩm áp dụng",
+          type: "multi-select",
+          options: promotionProductOptions,
+          helperText: "Chọn một hoặc nhiều sản phẩm được phép dùng mã khuyến mãi này.",
+        },
       ],
       values: {
         tenKhuyenMai: fieldValue(promotion?.tenKhuyenMai),
         phanTramGiam: fieldValue(promotion?.phanTramGiam ?? 0),
         ngayBatDau: dateInputValue(promotion?.ngayBatDau),
         ngayKetThuc: dateInputValue(promotion?.ngayKetThuc),
+        maSanPhamApDung: fieldValue(promotion?.maSanPhamApDung),
       },
       onSubmit: async (values) => {
+        if (!values.tenKhuyenMai.trim()) {
+          toast.error("Vui lòng nhập tên khuyến mãi");
+          return;
+        }
+
+        const discount = Number(values.phanTramGiam);
+        if (!Number.isFinite(discount) || discount < 0 || discount > 100) {
+          toast.error("Phần trăm giảm phải từ 0 đến 100");
+          return;
+        }
+
         if (mode === "create") await api.post("/khuyen-mai/them", values);
         else await api.put(`/khuyen-mai/sua/${promotion?.maKhuyenMai}`, values);
         await saveAndReload("Đã lưu khuyến mãi");

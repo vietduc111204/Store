@@ -73,6 +73,17 @@ const FormModal = ({ modal, onClose }: { modal: NonNullable<ModalState>; onClose
     );
   };
 
+  const toggleMultiSelectValue = (field: NonNullable<ModalState>["fields"][number], value: string) => {
+    setValues((current) => {
+      const selected = new Set((current[field.name] || "").split(",").map((item) => item.trim()).filter(Boolean));
+      if (selected.has(value)) selected.delete(value);
+      else selected.add(value);
+
+      const nextValue = Array.from(selected).join(",");
+      return field.onValueChange ? field.onValueChange(nextValue, current) : { ...current, [field.name]: nextValue };
+    });
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-3 sm:p-4">
       <form className="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-lg bg-white shadow-xl" onSubmit={submit}>
@@ -159,6 +170,30 @@ const FormModal = ({ modal, onClose }: { modal: NonNullable<ModalState>; onClose
                     </option>
                   ))}
                 </select>
+              ) : field.type === "multi-select" ? (
+                <div className="max-h-64 overflow-y-auto rounded-lg border border-slate-200 bg-white p-2">
+                  {(field.options || []).map((option) => {
+                    const selected = (values[field.name] || "").split(",").map((item) => item.trim()).filter(Boolean);
+                    return (
+                      <label
+                        className="flex cursor-pointer items-start gap-3 rounded-md px-3 py-2 text-sm hover:bg-slate-50"
+                        key={option.value}
+                      >
+                        <input
+                          checked={selected.includes(option.value)}
+                          className="mt-0.5 size-4 accent-sky-700"
+                          disabled={disabled}
+                          onChange={() => toggleMultiSelectValue(field, option.value)}
+                          type="checkbox"
+                        />
+                        <span className="font-semibold text-slate-700">{option.label}</span>
+                      </label>
+                    );
+                  })}
+                  {!field.options?.length ? (
+                    <p className="px-3 py-4 text-sm font-semibold text-slate-500">Chưa có lựa chọn</p>
+                  ) : null}
+                </div>
               ) : field.type === "textarea" ? (
                 <textarea
                   className="min-h-28 rounded-lg border border-slate-200 px-3 py-3 text-sm outline-none focus:border-sky-500 disabled:bg-slate-100 disabled:text-slate-500"
