@@ -182,27 +182,24 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
             </p>
           ) : null}
           {applicablePromotions.length ? (
-            <div className="mt-4 grid gap-3">
-              <p className="text-xs font-black uppercase text-slate-700">Mã khuyến mãi khả dụng</p>
-              {applicablePromotions.map((promotion) => (
-                <button
-                  className="rounded-lg bg-white p-3 text-left ring-1 ring-sky-200 transition hover:ring-[#0879a8]"
-                  key={promotion.maKhuyenMai}
-                  onClick={() => setPromoCode(promotionCodeText(promotion))}
-                  type="button"
-                >
-                  <span className="flex items-center justify-between gap-3">
-                    <span className="break-all text-sm font-black text-[#075f83]">{promotionCodeText(promotion)}</span>
-                    <span className="shrink-0 rounded bg-red-50 px-2 py-1 text-xs font-black text-red-700">
-                      -{Number(promotion.phanTramGiam || 0)}%
+            <div className="mt-4">
+              <p className="mb-2 text-xs font-black uppercase text-slate-500">Mã khả dụng cho giỏ hàng của bạn</p>
+              <div className="max-h-52 overflow-y-auto rounded-lg border border-sky-100 bg-sky-50/50">
+                {applicablePromotions.map((promotion, idx) => (
+                  <button
+                    className={`flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-sky-100 ${idx !== 0 ? "border-t border-sky-100" : ""}`}
+                    key={promotion.maKhuyenMai}
+                    onClick={() => setPromoCode(promotionCodeText(promotion))}
+                    type="button"
+                  >
+                    <span className="flex min-w-0 flex-1 flex-col">
+                      <span className="font-black text-[#075f83]">{promotionCodeText(promotion)}</span>
+                      <span className="mt-0.5 truncate text-xs text-slate-500">Hết hạn {promotionDateText(promotion).split(" - ")[1] || promotionDateText(promotion)}</span>
                     </span>
-                  </span>
-                  <span className="mt-2 block text-xs font-semibold text-slate-500">Hạn dùng: {promotionDateText(promotion)}</span>
-                  <span className="mt-1 block text-xs font-semibold text-slate-500">
-                    Áp dụng cho {Number(promotion.soSanPhamApDung || 0)} sản phẩm{promotion.sanPhamApDung ? `: ${promotion.sanPhamApDung}` : ""}
-                  </span>
-                </button>
-              ))}
+                    <span className="shrink-0 rounded-full bg-red-600 px-2.5 py-1 text-xs font-black text-white">-{Number(promotion.phanTramGiam || 0)}%</span>
+                  </button>
+                ))}
+              </div>
             </div>
           ) : null}
           <button className="mt-7 flex w-full items-center justify-center gap-3 rounded-lg bg-[#0879a8] px-6 py-5 text-xl font-black text-white shadow-sm disabled:cursor-not-allowed disabled:bg-slate-400" disabled={!!invalidStockItem} onClick={() => void submitOrder()}>
