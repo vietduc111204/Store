@@ -25,6 +25,9 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
   const appliedPromoItemCount = appliedPromo
     ? cart.filter((item) => Number(item.product.maKhuyenMai) === Number(appliedPromo.maKhuyenMai) && Number(item.product.phanTramGiam || 0) > 0).length
     : 0;
+  const applicablePromotions = promotions.filter((promo) =>
+    cart.some((item) => Number(item.product.maKhuyenMai) === Number(promo.maKhuyenMai) && Number(item.product.phanTramGiam || 0) > 0)
+  );
 
   const applyPromo = () => {
     const normalized = promoCode.trim().toLowerCase();
@@ -178,10 +181,10 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
               Mã {promotionCodeText(appliedPromo)} áp dụng cho {appliedPromoItemCount} sản phẩm đang được giảm {Number(appliedPromo.phanTramGiam || 0)}%.
             </p>
           ) : null}
-          {promotions.length ? (
+          {applicablePromotions.length ? (
             <div className="mt-4 grid gap-3">
               <p className="text-xs font-black uppercase text-slate-700">Mã khuyến mãi khả dụng</p>
-              {promotions.map((promotion) => (
+              {applicablePromotions.map((promotion) => (
                 <button
                   className="rounded-lg bg-white p-3 text-left ring-1 ring-sky-200 transition hover:ring-[#0879a8]"
                   key={promotion.maKhuyenMai}
