@@ -18,9 +18,13 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
   const [appliedPromo, setAppliedPromo] = useState<Promotion | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"bank" | "cod">("cod");
   const [form, setForm] = useState({ name: user?.tenThanhVien || "", phone: user?.soDienThoaiKhachHang || "", address: user?.diaChiKhachHang || "", city: "Hồ Chí Minh", district: "Quận 1" });
-  const subtotal = cart.reduce((total, item) => total + (Number(item.product.gia) || 0) * item.quantity, 0);
-  const discount = cart.reduce((total, item) => total + ((Number(item.product.gia) || 0) - finalPrice(item.product)) * item.quantity, 0);
-  const total = Math.max(0, subtotal - discount);
+  const subtotal = cart.reduce((sum, item) => sum + (Number(item.product.gia) || 0) * item.quantity, 0);
+  const discount = appliedPromo
+    ? cart
+        .filter((item) => Number(item.product.maKhuyenMai) === Number(appliedPromo.maKhuyenMai) && Number(item.product.phanTramGiam || 0) > 0)
+        .reduce((sum, item) => sum + ((Number(item.product.gia) || 0) - finalPrice(item.product)) * item.quantity, 0)
+    : cart.reduce((sum, item) => sum + ((Number(item.product.gia) || 0) - finalPrice(item.product)) * item.quantity, 0);
+  const total = cart.reduce((sum, item) => sum + finalPrice(item.product) * item.quantity, 0);
   const invalidStockItem = cart.find((item) => item.quantity > Math.max(0, Number(item.product.soLuong) || 0));
   const appliedPromoItemCount = appliedPromo
     ? cart.filter((item) => Number(item.product.maKhuyenMai) === Number(appliedPromo.maKhuyenMai) && Number(item.product.phanTramGiam || 0) > 0).length
@@ -166,9 +170,28 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
         </div>
         <aside className="h-fit rounded-lg bg-[#e4f2ff] p-6 ring-1 ring-sky-200">
           <h2 className="text-2xl font-black">Tổng đơn hàng</h2>
+          <div className="mt-4 space-y-3">
+            {cart.map((item) => {
+              const pct = Number(item.product.phanTramGiam || 0);
+              const isPromoItem = appliedPromo && Number(item.product.maKhuyenMai) === Number(appliedPromo.maKhuyenMai) && pct > 0;
+              return (
+                <div className="flex items-start justify-between gap-3 text-sm" key={item.product.maSanPham}>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold leading-tight text-slate-800">{item.product.tenSanPham}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      SL: {item.quantity} · {formatMoney(finalPrice(item.product))}/sp
+                      {pct > 0 && <span className={`ml-1 font-bold ${isPromoItem ? "text-red-600" : "text-slate-400"}`}>(-{pct}%{isPromoItem ? ` ${promotionCodeText(appliedPromo!)}` : ""})</span>}
+                    </p>
+                  </div>
+                  <p className="shrink-0 font-bold text-slate-800">{formatMoney(finalPrice(item.product) * item.quantity)}</p>
+                </div>
+              );
+            })}
+          </div>
+          <div className="my-4 border-t border-sky-200" />
           <SummaryRow label="Tạm tính" value={formatMoney(subtotal)} />
           <SummaryRow label="Phí vận chuyển" value="Miễn phí" />
-          <SummaryRow label="Giảm giá" value={`- ${formatMoney(discount)}`} danger />
+          <SummaryRow label={appliedPromo ? `Giảm giá (${promotionCodeText(appliedPromo)})` : "Giảm giá"} value={`- ${formatMoney(discount)}`} danger />
           <div className="my-5 border-t border-sky-200" />
           <div className="flex justify-between text-2xl font-black text-[#075f83]"><span>Tổng cộng</span><span>{formatMoney(total)}</span></div>
           <label className="mt-8 block text-xs font-black uppercase text-slate-700">Mã khuyến mãi</label>
