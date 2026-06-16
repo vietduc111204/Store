@@ -5,7 +5,7 @@ import { createCrudHandlers } from './crudController.js';
 const orderConfig = {
   table: 'DonHang',
   pk: 'maDonHang',
-  columns: ['tongGia', 'trangThai', 'maKhachHang', 'maKhuyenMai'],
+  columns: ['tongGia', 'trangThai', 'maKhachHang', 'maKhuyenMai', 'diaChiGiaoHang', 'tenTinhThanh', 'tenQuanHuyen', 'tenPhuongXa', 'maQuanHuyen', 'maPhuongXa', 'phiVanChuyen'],
   required: ['tongGia', 'maKhachHang'],
   search: ['trangThai'],
   orderBy: 'maDonHang',
@@ -194,17 +194,36 @@ export const createOrder = async (req, res) => {
     const appliedPromotion = await validatePromotionAppliesToItems(client, maKhuyenMai, rawDetails);
 
     const details = rawDetails;
-    const tongGia = details.length
+    const productTotal = details.length
       ? details.reduce((total, item) => total + item.thanhTien, 0)
       : Number(req.body.tongGia);
+
+    const phiVanChuyen = Math.max(Number(req.body.phiVanChuyen) || 0, 0);
+    const tongGia = productTotal + phiVanChuyen;
 
     if (!Number.isFinite(tongGia) || tongGia < 0) {
       throw new Error('Tổng giá không hợp lệ');
     }
 
     const orderResult = await client.query(
-      'insert into "DonHang" ("tongGia", "trangThai", "maKhachHang", "maKhuyenMai") values ($1, $2, $3, $4) returning *',
-      [tongGia, req.body.trangThai || 'Mới tạo', maKhachHang, appliedPromotion]
+      `insert into "DonHang"
+        ("tongGia", "trangThai", "maKhachHang", "maKhuyenMai",
+         "diaChiGiaoHang", "tenTinhThanh", "tenQuanHuyen", "tenPhuongXa",
+         "maQuanHuyen", "maPhuongXa", "phiVanChuyen")
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) returning *`,
+      [
+        tongGia,
+        req.body.trangThai || 'Mới tạo',
+        maKhachHang,
+        appliedPromotion,
+        req.body.diaChiGiaoHang || null,
+        req.body.tenTinhThanh || null,
+        req.body.tenQuanHuyen || null,
+        req.body.tenPhuongXa || null,
+        req.body.maQuanHuyen || null,
+        req.body.maPhuongXa || null,
+        phiVanChuyen,
+      ]
     );
 
     const order = orderResult.rows[0];

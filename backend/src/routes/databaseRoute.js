@@ -7,6 +7,7 @@ import paymentRoute from './paymentRoute.js';
 import productRoute from './productRoute.js';
 import promotionRoute from './promotionRoute.js';
 import reportRoute from './reportRoute.js';
+import shippingRoute from './shippingRoute.js';
 
 const router = express.Router();
 
@@ -18,5 +19,6 @@ router.use('/tai-khoan', accountRoute);
 router.use('/khuyen-mai', promotionRoute);
 router.use(orderRoute);
 router.use(paymentRoute);
+router.use(shippingRoute);
 
 export default router;

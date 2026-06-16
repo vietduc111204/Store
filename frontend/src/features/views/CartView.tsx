@@ -1,6 +1,6 @@
 import { ArrowRight, Banknote, Lock, PackageCheck, Trash2, Truck, WalletCards } from "lucide-react";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { toast } from "sonner";
 import axios from "axios";
@@ -10,6 +10,10 @@ import type { CartItem, Promotion } from "@/types/customer";
 import { finalPrice, formatMoney, productImage } from "../utils";
 import { EmptyState } from "../components/EmptyState";
 
+type GHNProvince = { ProvinceID: number; ProvinceName: string };
+type GHNDistrict = { DistrictID: number; DistrictName: string };
+type GHNWard = { WardCode: string; WardName: string };
+
 export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { cart: CartItem[]; onClear: () => void; onQuantity: (id: number, quantity: number) => void; onRemove: (id: number) => void; promotions: Promotion[] }) => {
   const user = useAuthStore((state) => state.user);
   const navigate = useNavigate();
@@ -17,7 +21,53 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
   const [promoCode, setPromoCode] = useState("");
   const [appliedPromo, setAppliedPromo] = useState<Promotion | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"bank" | "cod">("cod");
-  const [form, setForm] = useState({ name: user?.tenThanhVien || "", phone: user?.soDienThoaiKhachHang || "", address: user?.diaChiKhachHang || "", city: "Hồ Chí Minh", district: "Quận 1" });
+  const [form, setForm] = useState({ name: user?.tenThanhVien || "", phone: user?.soDienThoaiKhachHang || "", streetAddress: user?.diaChiKhachHang || "" });
+
+  const [provinces, setProvinces] = useState<GHNProvince[]>([]);
+  const [districts, setDistricts] = useState<GHNDistrict[]>([]);
+  const [wards, setWards] = useState<GHNWard[]>([]);
+  const [selectedProvince, setSelectedProvince] = useState<GHNProvince | null>(null);
+  const [selectedDistrict, setSelectedDistrict] = useState<GHNDistrict | null>(null);
+  const [selectedWard, setSelectedWard] = useState<GHNWard | null>(null);
+  const [shippingFee, setShippingFee] = useState<number | null>(null);
+  const [calculatingFee, setCalculatingFee] = useState(false);
+
+  useEffect(() => {
+    api.get<GHNProvince[]>("/van-chuyen/tinh-thanh").then((res) => setProvinces(res.data)).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    setSelectedDistrict(null);
+    setSelectedWard(null);
+    setDistricts([]);
+    setWards([]);
+    setShippingFee(null);
+    if (!selectedProvince) return;
+    api.get<GHNDistrict[]>(`/van-chuyen/quan-huyen?provinceId=${selectedProvince.ProvinceID}`)
+      .then((res) => setDistricts(res.data)).catch(() => {});
+  }, [selectedProvince]);
+
+  useEffect(() => {
+    setSelectedWard(null);
+    setWards([]);
+    setShippingFee(null);
+    if (!selectedDistrict) return;
+    api.get<GHNWard[]>(`/van-chuyen/phuong-xa?districtId=${selectedDistrict.DistrictID}`)
+      .then((res) => setWards(res.data)).catch(() => {});
+  }, [selectedDistrict]);
+
+  useEffect(() => {
+    setShippingFee(null);
+    if (!selectedDistrict || !selectedWard) return;
+    setCalculatingFee(true);
+    api.post<{ phiVanChuyen: number }>("/van-chuyen/tinh-phi", {
+      toDistrictId: selectedDistrict.DistrictID,
+      toWardCode: selectedWard.WardCode,
+    })
+      .then((res) => setShippingFee(res.data.phiVanChuyen))
+      .catch(() => toast.error("Không tính được phí vận chuyển"))
+      .finally(() => setCalculatingFee(false));
+  }, [selectedWard]);
   // Item is eligible for promo if product is linked to that promo code
   const isPromoItem = (item: CartItem) =>
     !!appliedPromo && Number(item.product.maKhuyenMai) === Number(appliedPromo.maKhuyenMai);
@@ -29,7 +79,7 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
   const discount = cart
     .filter(isPromoItem)
     .reduce((sum, item) => sum + finalPrice(item.product) * (promoPct / 100) * item.quantity, 0);
-  const total = Math.max(0, subtotal - discount);
+  const total = Math.max(0, subtotal - discount + (shippingFee ?? 0));
   const invalidStockItem = cart.find((item) => item.quantity > Math.max(0, Number(item.product.soLuong) || 0));
   const appliedPromoItemCount = appliedPromo
     ? cart.filter((item) => Number(item.product.maKhuyenMai) === Number(appliedPromo.maKhuyenMai)).length
@@ -67,13 +117,18 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
     const requiredFields = [
       { label: "họ và tên", value: form.name },
       { label: "số điện thoại", value: form.phone },
-      { label: "địa chỉ nhận hàng", value: form.address },
-      { label: "tỉnh/thành phố", value: form.city },
-      { label: "quận/huyện", value: form.district },
+      { label: "địa chỉ nhận hàng", value: form.streetAddress },
+      { label: "tỉnh/thành phố", value: selectedProvince?.ProvinceName || "" },
+      { label: "quận/huyện", value: selectedDistrict?.DistrictName || "" },
+      { label: "phường/xã", value: selectedWard?.WardName || "" },
     ];
     const missingField = requiredFields.find((field) => !field.value.trim());
     if (missingField) {
-      toast.error(`Vui lòng nhập ${missingField.label}`);
+      toast.error(`Vui lòng chọn ${missingField.label}`);
+      return;
+    }
+    if (shippingFee === null) {
+      toast.error("Vui lòng chờ tính phí vận chuyển");
       return;
     }
 
@@ -88,6 +143,13 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
         maKhuyenMai: appliedPromo?.maKhuyenMai || null,
         trangThai: "Mới tạo",
         items: cart.map((item) => ({ maSanPham: item.product.maSanPham, soLuong: item.quantity })),
+        diaChiGiaoHang: form.streetAddress,
+        tenTinhThanh: selectedProvince?.ProvinceName || "",
+        tenQuanHuyen: selectedDistrict?.DistrictName || "",
+        tenPhuongXa: selectedWard?.WardName || "",
+        maQuanHuyen: selectedDistrict?.DistrictID || null,
+        maPhuongXa: selectedWard?.WardCode || null,
+        phiVanChuyen: shippingFee,
       });
 
       if (paymentMethod === "bank") {
@@ -141,9 +203,34 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
             <div className="mt-6 grid gap-5 sm:grid-cols-2">
               <CheckoutInput label="Họ và tên" onChange={(value) => setForm({ ...form, name: value })} required value={form.name} />
               <CheckoutInput label="Số điện thoại" onChange={(value) => setForm({ ...form, phone: value })} required value={form.phone} />
-              <CheckoutInput className="sm:col-span-2" label="Địa chỉ nhận hàng" onChange={(value) => setForm({ ...form, address: value })} required value={form.address} />
-              <CheckoutInput label="Tỉnh/Thành phố" onChange={(value) => setForm({ ...form, city: value })} required value={form.city} />
-              <CheckoutInput label="Quận/Huyện" onChange={(value) => setForm({ ...form, district: value })} required value={form.district} />
+              <CheckoutInput className="sm:col-span-2" label="Địa chỉ cụ thể (số nhà, tên đường)" onChange={(value) => setForm({ ...form, streetAddress: value })} required value={form.streetAddress} />
+              <CheckoutSelect
+                label="Tỉnh/Thành phố"
+                placeholder="Chọn tỉnh/thành phố"
+                options={provinces.map((p) => ({ value: String(p.ProvinceID), label: p.ProvinceName }))}
+                value={selectedProvince ? String(selectedProvince.ProvinceID) : ""}
+                onChange={(val) => setSelectedProvince(provinces.find((p) => String(p.ProvinceID) === val) ?? null)}
+                required
+              />
+              <CheckoutSelect
+                label="Quận/Huyện"
+                placeholder={selectedProvince ? "Chọn quận/huyện" : "Chọn tỉnh/thành trước"}
+                options={districts.map((d) => ({ value: String(d.DistrictID), label: d.DistrictName }))}
+                value={selectedDistrict ? String(selectedDistrict.DistrictID) : ""}
+                onChange={(val) => setSelectedDistrict(districts.find((d) => String(d.DistrictID) === val) ?? null)}
+                disabled={!selectedProvince}
+                required
+              />
+              <CheckoutSelect
+                className="sm:col-span-2"
+                label="Phường/Xã"
+                placeholder={selectedDistrict ? "Chọn phường/xã" : "Chọn quận/huyện trước"}
+                options={wards.map((w) => ({ value: w.WardCode, label: w.WardName }))}
+                value={selectedWard?.WardCode ?? ""}
+                onChange={(val) => setSelectedWard(wards.find((w) => w.WardCode === val) ?? null)}
+                disabled={!selectedDistrict}
+                required
+              />
             </div>
           </section>
           <section className="rounded-lg bg-white p-6 ring-1 ring-slate-200">
@@ -209,7 +296,10 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
           </div>
           <div className="my-4 border-t border-sky-200" />
           <SummaryRow label="Tạm tính" value={formatMoney(subtotal)} />
-          <SummaryRow label="Phí vận chuyển" value="Miễn phí" />
+          <SummaryRow
+            label="Phí vận chuyển"
+            value={calculatingFee ? "Đang tính..." : shippingFee !== null ? formatMoney(shippingFee) : "Chọn địa chỉ"}
+          />
           <SummaryRow label={appliedPromo ? `Giảm giá (${promotionCodeText(appliedPromo)})` : "Giảm giá"} value={`- ${formatMoney(discount)}`} danger />
           <div className="my-5 border-t border-sky-200" />
           <div className="flex justify-between text-2xl font-black text-[#075f83]"><span>Tổng cộng</span><span>{formatMoney(total)}</span></div>
@@ -259,6 +349,21 @@ const CheckoutInput = ({ className = "", label, onChange, required, value }: { c
   <label className={className}>
     <span className="text-xs font-black uppercase text-slate-700">{label}{required ? <span className="text-red-600"> *</span> : null}</span>
     <input className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-4 outline-none focus:border-[#0879a8]" onChange={(event) => onChange(event.target.value)} required={required} value={value} />
+  </label>
+);
+
+const CheckoutSelect = ({ className = "", label, onChange, options, placeholder, disabled, required, value }: { className?: string; label: string; onChange: (value: string) => void; options: { value: string; label: string }[]; placeholder: string; disabled?: boolean; required?: boolean; value: string }) => (
+  <label className={className}>
+    <span className="text-xs font-black uppercase text-slate-700">{label}{required ? <span className="text-red-600"> *</span> : null}</span>
+    <select
+      className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-4 outline-none focus:border-[#0879a8] disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+      disabled={disabled}
+      onChange={(event) => onChange(event.target.value)}
+      value={value}
+    >
+      <option value="">{placeholder}</option>
+      {options.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+    </select>
   </label>
 );
 
