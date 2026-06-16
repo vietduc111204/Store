@@ -12,6 +12,12 @@ export interface AuthAccount {
   tenThanhVien?: string | null;
   soDienThoaiKhachHang?: string | null;
   diaChiKhachHang?: string | null;
+  tenTinhThanhKhachHang?: string | null;
+  tenQuanHuyenKhachHang?: string | null;
+  tenPhuongXaKhachHang?: string | null;
+  maTinhThanhKhachHang?: number | null;
+  maQuanHuyenKhachHang?: number | null;
+  maPhuongXaKhachHang?: string | null;
   tenNhanVien?: string | null;
   soDienThoaiNhanVien?: string | null;
   diaChiNhanVien?: string | null;

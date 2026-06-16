@@ -15,6 +15,10 @@ import PromotionList from "../customer-account/PromotionList";
 import { readSeenBadges, writeSeenBadges, type SeenBadges } from "../customer-account/accountUtils";
 import { readCart, readFavoriteCategories, writeCart, type FavoriteCategory } from "../utils";
 
+type GHNProvince = { ProvinceID: number; ProvinceName: string };
+type GHNDistrict = { DistrictID: number; DistrictName: string };
+type GHNWard = { WardCode: string; WardName: string };
+
 const ORDERS_PER_PAGE = 5;
 
 export const CustomerAccountView = () => {
@@ -43,6 +47,12 @@ export const CustomerAccountView = () => {
     phone: user?.soDienThoaiKhachHang || "",
     address: user?.diaChiKhachHang || "",
   });
+  const [provinces, setProvinces] = useState<GHNProvince[]>([]);
+  const [districts, setDistricts] = useState<GHNDistrict[]>([]);
+  const [wards, setWards] = useState<GHNWard[]>([]);
+  const [selProvince, setSelProvince] = useState<GHNProvince | null>(null);
+  const [selDistrict, setSelDistrict] = useState<GHNDistrict | null>(null);
+  const [selWard, setSelWard] = useState<GHNWard | null>(null);
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
     newPassword: "",
@@ -62,6 +72,51 @@ export const CustomerAccountView = () => {
       address: user?.diaChiKhachHang || "",
     });
   }, [user?.diaChiKhachHang, user?.soDienThoaiKhachHang, user?.tenThanhVien]);
+
+  useEffect(() => {
+    api.get<GHNProvince[]>("/van-chuyen/tinh-thanh").then((res) => setProvinces(res.data)).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!provinces.length) return;
+    const savedId = user?.maTinhThanhKhachHang;
+    if (savedId) {
+      const found = provinces.find((p) => p.ProvinceID === savedId);
+      if (found) setSelProvince(found);
+    }
+  }, [provinces, user?.maTinhThanhKhachHang]);
+
+  useEffect(() => {
+    setSelDistrict(null);
+    setDistricts([]);
+    setSelWard(null);
+    setWards([]);
+    if (!selProvince) return;
+    api.get<GHNDistrict[]>(`/van-chuyen/quan-huyen?provinceId=${selProvince.ProvinceID}`)
+      .then((res) => {
+        setDistricts(res.data);
+        const savedId = user?.maQuanHuyenKhachHang;
+        if (savedId) {
+          const found = res.data.find((d) => d.DistrictID === savedId);
+          if (found) setSelDistrict(found);
+        }
+      }).catch(() => {});
+  }, [selProvince]);
+
+  useEffect(() => {
+    setSelWard(null);
+    setWards([]);
+    if (!selDistrict) return;
+    api.get<GHNWard[]>(`/van-chuyen/phuong-xa?districtId=${selDistrict.DistrictID}`)
+      .then((res) => {
+        setWards(res.data);
+        const savedCode = user?.maPhuongXaKhachHang;
+        if (savedCode) {
+          const found = res.data.find((w) => w.WardCode === savedCode);
+          if (found) setSelWard(found);
+        }
+      }).catch(() => {});
+  }, [selDistrict]);
 
   useEffect(() => {
     if (!user?.maKhachHang) return;
@@ -248,11 +303,23 @@ export const CustomerAccountView = () => {
         soDienThoai: phone || null,
         diaChi: address || null,
         email: user.email,
+        tenTinhThanh: selProvince?.ProvinceName || null,
+        tenQuanHuyen: selDistrict?.DistrictName || null,
+        tenPhuongXa: selWard?.WardName || null,
+        maTinhThanh: selProvince?.ProvinceID || null,
+        maQuanHuyen: selDistrict?.DistrictID || null,
+        maPhuongXa: selWard?.WardCode || null,
       });
       updateUser({
         tenThanhVien: name,
         soDienThoaiKhachHang: phone || null,
         diaChiKhachHang: address || null,
+        tenTinhThanhKhachHang: selProvince?.ProvinceName || null,
+        tenQuanHuyenKhachHang: selDistrict?.DistrictName || null,
+        tenPhuongXaKhachHang: selWard?.WardName || null,
+        maTinhThanhKhachHang: selProvince?.ProvinceID || null,
+        maQuanHuyenKhachHang: selDistrict?.DistrictID || null,
+        maPhuongXaKhachHang: selWard?.WardCode || null,
       });
       toast.success("Đã cập nhật thông tin cá nhân");
     } catch (error) {
@@ -413,9 +480,32 @@ export const CustomerAccountView = () => {
                   value={profileForm.phone}
                 />
                 <ProfileField
-                  label="Địa chỉ"
+                  label="Địa chỉ cụ thể (số nhà, tên đường)"
                   onChange={(value) => setProfileForm((current) => ({ ...current, address: value }))}
                   value={profileForm.address}
+                />
+                <ProfileSelect
+                  label="Tỉnh/Thành phố"
+                  placeholder="Chọn tỉnh/thành phố"
+                  options={provinces.map((p) => ({ value: String(p.ProvinceID), label: p.ProvinceName }))}
+                  value={selProvince ? String(selProvince.ProvinceID) : ""}
+                  onChange={(val) => setSelProvince(provinces.find((p) => String(p.ProvinceID) === val) ?? null)}
+                />
+                <ProfileSelect
+                  label="Quận/Huyện"
+                  placeholder={selProvince ? "Chọn quận/huyện" : "Chọn tỉnh/thành trước"}
+                  options={districts.map((d) => ({ value: String(d.DistrictID), label: d.DistrictName }))}
+                  value={selDistrict ? String(selDistrict.DistrictID) : ""}
+                  onChange={(val) => setSelDistrict(districts.find((d) => String(d.DistrictID) === val) ?? null)}
+                  disabled={!selProvince}
+                />
+                <ProfileSelect
+                  label="Phường/Xã"
+                  placeholder={selDistrict ? "Chọn phường/xã" : "Chọn quận/huyện trước"}
+                  options={wards.map((w) => ({ value: w.WardCode, label: w.WardName }))}
+                  value={selWard?.WardCode ?? ""}
+                  onChange={(val) => setSelWard(wards.find((w) => w.WardCode === val) ?? null)}
+                  disabled={!selDistrict}
                 />
                 <div className="flex justify-end border-t border-slate-100 pt-5">
                   <button
@@ -595,3 +685,17 @@ export const CustomerAccountView = () => {
   );
 };
 
+const ProfileSelect = ({ disabled, label, onChange, options, placeholder, value }: { disabled?: boolean; label: string; onChange: (value: string) => void; options: { value: string; label: string }[]; placeholder: string; value: string }) => (
+  <div>
+    <span className="text-xs font-black uppercase text-slate-500">{label}</span>
+    <select
+      className="mt-2 h-12 w-full rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-950 outline-none focus:border-[#0879a8] disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
+      disabled={disabled}
+      onChange={(e) => onChange(e.target.value)}
+      value={value}
+    >
+      <option value="">{placeholder}</option>
+      {options.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+    </select>
+  </div>
+);

@@ -33,7 +33,18 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
   const [calculatingFee, setCalculatingFee] = useState(false);
 
   useEffect(() => {
-    api.get<GHNProvince[]>("/van-chuyen/tinh-thanh").then((res) => setProvinces(res.data)).catch(() => {});
+    api.get<GHNProvince[]>("/van-chuyen/tinh-thanh").then((res) => {
+      setProvinces(res.data);
+      const savedProvinceId = user?.maTinhThanhKhachHang;
+      const savedProvinceName = user?.tenTinhThanhKhachHang;
+      if (savedProvinceId) {
+        const found = res.data.find((p) => p.ProvinceID === savedProvinceId);
+        if (found) setSelectedProvince(found);
+      } else if (savedProvinceName) {
+        const found = res.data.find((p) => p.ProvinceName === savedProvinceName);
+        if (found) setSelectedProvince(found);
+      }
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -44,7 +55,14 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
     setShippingFee(null);
     if (!selectedProvince) return;
     api.get<GHNDistrict[]>(`/van-chuyen/quan-huyen?provinceId=${selectedProvince.ProvinceID}`)
-      .then((res) => setDistricts(res.data)).catch(() => {});
+      .then((res) => {
+        setDistricts(res.data);
+        const savedId = user?.maQuanHuyenKhachHang;
+        if (savedId) {
+          const found = res.data.find((d) => d.DistrictID === savedId);
+          if (found) setSelectedDistrict(found);
+        }
+      }).catch(() => {});
   }, [selectedProvince]);
 
   useEffect(() => {
@@ -53,7 +71,14 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
     setShippingFee(null);
     if (!selectedDistrict) return;
     api.get<GHNWard[]>(`/van-chuyen/phuong-xa?districtId=${selectedDistrict.DistrictID}`)
-      .then((res) => setWards(res.data)).catch(() => {});
+      .then((res) => {
+        setWards(res.data);
+        const savedCode = user?.maPhuongXaKhachHang;
+        if (savedCode) {
+          const found = res.data.find((w) => w.WardCode === savedCode);
+          if (found) setSelectedWard(found);
+        }
+      }).catch(() => {});
   }, [selectedDistrict]);
 
   useEffect(() => {

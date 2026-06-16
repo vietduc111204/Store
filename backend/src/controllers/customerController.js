@@ -10,12 +10,12 @@ const CUSTOMER_ROLE_ID = 3;
 const customerConfig = {
   table: 'KhachHang',
   pk: 'maKhachHang',
-  columns: ['tenKhachHang', 'soDienThoai', 'email', 'diaChi', 'maQuyen'],
+  columns: ['tenKhachHang', 'soDienThoai', 'email', 'diaChi', 'maQuyen', 'tenTinhThanh', 'tenQuanHuyen', 'tenPhuongXa', 'maTinhThanh', 'maQuanHuyen', 'maPhuongXa'],
   required: ['tenKhachHang'],
   search: ['tenKhachHang', 'soDienThoai', 'email', 'diaChi'],
   orderBy: 'maKhachHang',
   listSelect:
-    '"maKhachHang" as "maThanhVien", "tenKhachHang" as "tenThanhVien", "soDienThoai", "email", "diaChi", "maQuyen"',
+    '"maKhachHang" as "maThanhVien", "tenKhachHang" as "tenThanhVien", "soDienThoai", "email", "diaChi", "maQuyen", "tenTinhThanh", "tenQuanHuyen", "tenPhuongXa", "maTinhThanh", "maQuanHuyen", "maPhuongXa"',
 };
 
 const customerHandlers = createCrudHandlers(customerConfig, 'Customer');

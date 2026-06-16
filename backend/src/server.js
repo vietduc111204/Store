@@ -51,6 +51,15 @@ const applyMigrations = async () => {
         add column if not exists "maPhuongXa" text,
         add column if not exists "phiVanChuyen" numeric default 0
     `);
+    await pool.query(`
+      alter table "KhachHang"
+        add column if not exists "tenTinhThanh" text,
+        add column if not exists "tenQuanHuyen" text,
+        add column if not exists "tenPhuongXa" text,
+        add column if not exists "maTinhThanh" integer,
+        add column if not exists "maQuanHuyen" integer,
+        add column if not exists "maPhuongXa" text
+    `);
     console.log('Migrations applied');
   } catch (error) {
     console.error('Migration failed', error);
