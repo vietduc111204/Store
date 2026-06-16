@@ -32,6 +32,18 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
   const [shippingFee, setShippingFee] = useState<number | null>(null);
   const [calculatingFee, setCalculatingFee] = useState(false);
 
+  // When PayOS cancels, it redirects to /gio-hang?orderCode=XXX&status=CANCELLED
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const orderCode = params.get("orderCode");
+    const status = params.get("status");
+    if (orderCode && status === "CANCELLED") {
+      api.patch(`/don-hang/huy/${orderCode}`).catch(() => {});
+      toast.info("Đã hủy thanh toán. Đơn hàng chờ thanh toán đã được hủy.");
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
+
   useEffect(() => {
     api.get<GHNProvince[]>("/van-chuyen/tinh-thanh").then((res) => {
       setProvinces(res.data);
@@ -166,7 +178,7 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
       const orderRes = await api.post("/don-hang/them", {
         maKhachHang: user.maKhachHang,
         maKhuyenMai: appliedPromo?.maKhuyenMai || null,
-        trangThai: "Mới tạo",
+        trangThai: paymentMethod === "bank" ? "Chờ thanh toán" : "Mới tạo",
         items: cart.map((item) => ({ maSanPham: item.product.maSanPham, soLuong: item.quantity })),
         diaChiGiaoHang: form.streetAddress,
         tenTinhThanh: selectedProvince?.ProvinceName || "",

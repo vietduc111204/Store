@@ -227,18 +227,21 @@ export const createOrder = async (req, res) => {
     );
 
     const order = orderResult.rows[0];
+    const isPendingPayment = (req.body.trangThai || '') === 'Chờ thanh toán';
 
     for (const detail of details) {
       await client.query(
         'insert into "ChiTietDonHang" ("maDonHang", "maSanPham", "soLuong", "thanhTien") values ($1, $2, $3, $4)',
         [order.maDonHang, detail.maSanPham, detail.soLuong, detail.thanhTien]
       );
-      const stockResult = await client.query(
-        'update "SanPham" set "soLuong" = "soLuong" - $1 where "maSanPham" = $2 and "soLuong" >= $1',
-        [detail.soLuong, detail.maSanPham]
-      );
-      if (!stockResult.rowCount) {
-        throw new Error(`Sản phẩm ${detail.maSanPham} không đủ số lượng trong kho`);
+      if (!isPendingPayment) {
+        const stockResult = await client.query(
+          'update "SanPham" set "soLuong" = "soLuong" - $1 where "maSanPham" = $2 and "soLuong" >= $1',
+          [detail.soLuong, detail.maSanPham]
+        );
+        if (!stockResult.rowCount) {
+          throw new Error(`Sản phẩm ${detail.maSanPham} không đủ số lượng trong kho`);
+        }
       }
     }
 
@@ -343,7 +346,9 @@ export const cancelOrder = async (req, res) => {
       return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
     }
 
-    if ((current.rows[0].trangThai || '').trim() !== CANCELLED_STATUS) {
+    const currentStatus = (current.rows[0].trangThai || '').trim();
+    // Only restore stock if order was not pending payment (stock was already deducted)
+    if (currentStatus !== CANCELLED_STATUS && currentStatus !== 'Chờ thanh toán') {
       await restoreOrderStock(client, req.params.id);
     }
 
@@ -381,7 +386,8 @@ export const updateOrderStatus = async (req, res) => {
       return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
     }
 
-    if (trangThai.trim() === CANCELLED_STATUS && (current.rows[0].trangThai || '').trim() !== CANCELLED_STATUS) {
+    const prevStatus = (current.rows[0].trangThai || '').trim();
+    if (trangThai.trim() === CANCELLED_STATUS && prevStatus !== CANCELLED_STATUS && prevStatus !== 'Chờ thanh toán') {
       await restoreOrderStock(client, req.params.id);
     }
 

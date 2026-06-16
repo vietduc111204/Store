@@ -45,13 +45,37 @@ export const receiveWebhook = async (req, res) => {
   try {
     const webhookData = await payos.webhooks.verify(req.body);
     if (req.body.code === '00' && webhookData?.orderCode) {
-      await pool
-        .query(
+      const client = await pool.connect();
+      try {
+        await client.query('begin');
+        const updateResult = await client.query(
           `update "DonHang" set "trangThai" = $1
-           where "maDonHang" = $2 and "trangThai" not in ($3, $4)`,
+           where "maDonHang" = $2 and "trangThai" not in ($3, $4)
+           returning "trangThai"`,
           ['Đã thanh toán', webhookData.orderCode, 'Đã hủy', 'Đã thanh toán']
-        )
-        .catch((err) => console.error('Update order status from webhook failed', err));
+        );
+
+        // If the order was pending payment, deduct stock now
+        if (updateResult.rowCount) {
+          const details = await client.query(
+            'select "maSanPham", "soLuong" from "ChiTietDonHang" where "maDonHang" = $1',
+            [webhookData.orderCode]
+          );
+          for (const row of details.rows) {
+            await client.query(
+              'update "SanPham" set "soLuong" = "soLuong" - $1 where "maSanPham" = $2 and "soLuong" >= $1',
+              [row.soLuong, row.maSanPham]
+            );
+          }
+        }
+
+        await client.query('commit');
+      } catch (err) {
+        await client.query('rollback');
+        console.error('Webhook order update failed', err);
+      } finally {
+        client.release();
+      }
     }
   } catch (error) {
     console.error('Webhook verification failed', error);
