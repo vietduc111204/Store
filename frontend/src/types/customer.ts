@@ -14,6 +14,9 @@ export type Product = {
   ngayKetThuc?: string | null;
   thongSoKyThuat?: string | null;
   soLuongDaBan?: number | null;
+  giamGia?: string | number | null;
+  ngayBatDauGiam?: string | null;
+  ngayKetThucGiam?: string | null;
 };
 
 export type Category = {

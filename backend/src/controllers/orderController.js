@@ -68,15 +68,20 @@ const aggregateOrderItems = (items) => {
 const calculateOrderItems = async (client, items, appliedPromoCode = null) => {
   const details = [];
 
+  // Fetch promo code discount once before the loop
+  let promoDiscount = 0;
+  if (appliedPromoCode) {
+    promoDiscount = await getOrderDiscountPercent(client, appliedPromoCode);
+  }
+
   for (const { maSanPham, soLuong } of aggregateOrderItems(items)) {
     const productResult = await client.query(
       `select sp."maSanPham", sp."tenSanPham", sp."gia", sp."soLuong", sp."maKhuyenMai",
-        case when k."maKhuyenMai" is not null
-          and (k."ngayBatDau" is null or k."ngayBatDau" <= current_date)
-          and (k."ngayKetThuc" is null or k."ngayKetThuc" >= current_date)
-        then coalesce(k."phanTramGiam", 0)::numeric else 0 end as "phanTramGiam"
+        case when coalesce(sp."giamGia", 0)::numeric > 0
+          and (sp."ngayBatDauGiam" is null or sp."ngayBatDauGiam" <= current_date)
+          and (sp."ngayKetThucGiam" is null or sp."ngayKetThucGiam" >= current_date)
+        then coalesce(sp."giamGia", 0)::numeric else 0 end as "phanTramGiam"
        from "SanPham" sp
-       left join "KhuyenMai" k on k."maKhuyenMai" = sp."maKhuyenMai"
        where sp."maSanPham" = $1
        for update of sp`,
       [maSanPham]
@@ -92,15 +97,13 @@ const calculateOrderItems = async (client, items, appliedPromoCode = null) => {
 
     const gia = Number(product.gia);
     const phanTramGiam = Math.min(Math.max(Number(product.phanTramGiam) || 0, 0), 100);
+    // Apply direct product discount
     let thanhTien = Math.round(gia * soLuong * (100 - phanTramGiam)) / 100;
 
-    // Apply promo code as additional stacked discount on top of existing product discount
-    const isPromoItem =
-      appliedPromoCode &&
-      Number(product.maKhuyenMai) === Number(appliedPromoCode) &&
-      phanTramGiam > 0;
-    if (isPromoItem) {
-      thanhTien = Math.round(thanhTien * (100 - phanTramGiam)) / 100;
+    // Stack promo code discount on top of (already discounted) price
+    const isPromoItem = appliedPromoCode && Number(product.maKhuyenMai) === Number(appliedPromoCode);
+    if (isPromoItem && promoDiscount > 0) {
+      thanhTien = Math.round(thanhTien * (100 - promoDiscount)) / 100;
     }
 
     details.push({ maSanPham, maKhuyenMai: product.maKhuyenMai, soLuong, thanhTien, phanTramGiam });
@@ -115,11 +118,10 @@ const orderHasProductDiscount = async (client, maDonHang) => {
        select 1
        from "ChiTietDonHang" ct
        join "SanPham" sp on sp."maSanPham" = ct."maSanPham"
-         join "KhuyenMai" km on km."maKhuyenMai" = sp."maKhuyenMai"
        where ct."maDonHang" = $1
-         and coalesce(km."phanTramGiam", 0)::numeric > 0
-         and (km."ngayBatDau" is null or km."ngayBatDau" <= current_date)
-         and (km."ngayKetThuc" is null or km."ngayKetThuc" >= current_date)
+         and coalesce(sp."giamGia", 0)::numeric > 0
+         and (sp."ngayBatDauGiam" is null or sp."ngayBatDauGiam" <= current_date)
+         and (sp."ngayKetThucGiam" is null or sp."ngayKetThucGiam" >= current_date)
      ) as "hasProductDiscount"`,
     [maDonHang]
   );
@@ -146,9 +148,9 @@ const getOrderDiscountPercent = async (client, maKhuyenMai) => {
 const validatePromotionAppliesToItems = async (client, maKhuyenMai, details) => {
   if (!maKhuyenMai) return null;
 
-  await getOrderDiscountPercent(client, maKhuyenMai);
+  // Promo validity already checked via getOrderDiscountPercent inside calculateOrderItems
   const hasEligibleProduct = details.some(
-    (detail) => Number(detail.maKhuyenMai) === Number(maKhuyenMai) && Number(detail.phanTramGiam) > 0
+    (detail) => Number(detail.maKhuyenMai) === Number(maKhuyenMai)
   );
 
   if (!hasEligibleProduct) {
@@ -286,11 +288,10 @@ export const searchOrders = async (req, res) => {
           select 1
           from "ChiTietDonHang" ct
           join "SanPham" sp on sp."maSanPham" = ct."maSanPham"
-          join "KhuyenMai" pkm on pkm."maKhuyenMai" = sp."maKhuyenMai"
           where ct."maDonHang" = dh."maDonHang"
-            and coalesce(pkm."phanTramGiam", 0)::numeric > 0
-            and (pkm."ngayBatDau" is null or pkm."ngayBatDau" <= current_date)
-            and (pkm."ngayKetThuc" is null or pkm."ngayKetThuc" >= current_date)
+            and coalesce(sp."giamGia", 0)::numeric > 0
+            and (sp."ngayBatDauGiam" is null or sp."ngayBatDauGiam" <= current_date)
+            and (sp."ngayKetThucGiam" is null or sp."ngayKetThucGiam" >= current_date)
         ) as "hasProductDiscount"
        from "DonHang" dh
        left join "KhachHang" kh on kh."maKhachHang" = dh."maKhachHang"
@@ -393,12 +394,12 @@ export const listOrderDetailsByOrder = async (req, res) => {
         sp."gia",
         sp."anh",
         km."tenKhuyenMai",
-        case when km."maKhuyenMai" is not null
-          and (km."ngayBatDau" is null or km."ngayBatDau" <= current_date)
-          and (km."ngayKetThuc" is null or km."ngayKetThuc" >= current_date)
-        then km."phanTramGiam" else 0 end as "phanTramGiam",
-        km."ngayBatDau",
-        km."ngayKetThuc"
+        case when coalesce(sp."giamGia", 0)::numeric > 0
+          and (sp."ngayBatDauGiam" is null or sp."ngayBatDauGiam" <= current_date)
+          and (sp."ngayKetThucGiam" is null or sp."ngayKetThucGiam" >= current_date)
+        then sp."giamGia" else 0 end as "phanTramGiam",
+        sp."ngayBatDauGiam" as "ngayBatDau",
+        sp."ngayKetThucGiam" as "ngayKetThuc"
        from "ChiTietDonHang" ct
        join "SanPham" sp on sp."maSanPham" = ct."maSanPham"
        left join "KhuyenMai" km on km."maKhuyenMai" = sp."maKhuyenMai"

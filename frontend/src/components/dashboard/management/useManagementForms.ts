@@ -67,7 +67,7 @@ export const useManagementForms = ({
   }));
 
   const promotionProductOptions = products.map((product) => ({
-    label: `${product.tenSanPham}${product.tenKhuyenMai ? ` - hiện: ${product.tenKhuyenMai}` : ""}`,
+    label: `${product.tenSanPham}${product.tenKhuyenMai ? ` - mã hiện tại: ${product.tenKhuyenMai}` : ""}${Number(product.phanTramGiam || 0) > 0 ? ` - giảm thẳng ${Number(product.phanTramGiam)}%` : ""}`,
     value: String(product.maSanPham),
   }));
 
@@ -139,6 +139,16 @@ export const useManagementForms = ({
         { name: "anhPhu", label: "Ảnh phụ", type: "image-list" },
         { name: "maDanhMuc", label: "Danh mục", type: "select", options: categoryOptions.slice(1) },
         { name: "thongSoKyThuat", label: "Thông số kỹ thuật", type: "textarea" },
+        {
+          name: "giamGia",
+          label: "Giảm giá trực tiếp (%)",
+          type: "number",
+          min: 0,
+          max: 100,
+          helperText: "Giảm giá hiển thị thẳng trên sản phẩm. Để trống hoặc 0 nếu không giảm.",
+        },
+        { name: "ngayBatDauGiam", label: "Ngày bắt đầu giảm giá", type: "date" },
+        { name: "ngayKetThucGiam", label: "Ngày kết thúc giảm giá", type: "date" },
       ],
       values: {
         tenSanPham: fieldValue(product?.tenSanPham),
@@ -148,11 +158,27 @@ export const useManagementForms = ({
         anhPhu: imagesToText(product?.anhPhu),
         maDanhMuc: validCategoryValue(product?.maDanhMuc),
         thongSoKyThuat: specsToText(product?.thongSoKyThuat),
+        giamGia: fieldValue(product?.giamGia ?? ""),
+        ngayBatDauGiam: dateInputValue(product?.ngayBatDauGiam),
+        ngayKetThucGiam: dateInputValue(product?.ngayKetThucGiam),
       },
       onSubmit: async (values) => {
         const quantity = Number(values.soLuong);
         if (!Number.isInteger(quantity) || quantity < 0) {
           toast.error("Số lượng sản phẩm phải là số nguyên không âm");
+          return;
+        }
+
+        if (values.giamGia) {
+          const discount = Number(values.giamGia);
+          if (!Number.isFinite(discount) || discount < 0 || discount > 100) {
+            toast.error("Phần trăm giảm giá phải từ 0 đến 100");
+            return;
+          }
+        }
+
+        if (values.ngayBatDauGiam && values.ngayKetThucGiam && values.ngayKetThucGiam < values.ngayBatDauGiam) {
+          toast.error("Ngày kết thúc giảm giá không được trước ngày bắt đầu");
           return;
         }
 
@@ -162,6 +188,9 @@ export const useManagementForms = ({
           ...productValues,
           anhPhu: normalizeMultilineText(values.anhPhu),
           thongSoKyThuat: normalizeMultilineText(values.thongSoKyThuat),
+          giamGia: values.giamGia || null,
+          ngayBatDauGiam: values.ngayBatDauGiam || null,
+          ngayKetThucGiam: values.ngayKetThucGiam || null,
         };
         if (mode === "create") await api.post("/san-pham/them", payload);
         else await api.put(`/san-pham/sua/${product?.maSanPham}`, payload);
@@ -246,7 +275,6 @@ export const useManagementForms = ({
                 onValueChange: (value: string, values: FormValues) => ({
                   ...values,
                   maSanPham: value,
-                  maKhuyenMai: productHasDiscount(value) ? "" : values.maKhuyenMai,
                 }),
               },
               { name: "soLuong", label: "Số lượng", type: "number" as const, min: 1, step: 1 },
@@ -254,12 +282,10 @@ export const useManagementForms = ({
           : []),
         {
           name: "maKhuyenMai",
-          label: "Khuyến mãi đơn hàng",
+          label: "Mã khuyến mãi",
           type: "select",
           options: promotionOptions,
-          disabledWhen: (values) => (isCreate ? productHasDiscount(values.maSanPham) : !!order?.hasProductDiscount),
-          helperText:
-            "Không thể áp dụng khuyến mãi đơn hàng nếu sản phẩm đã có khuyến mãi riêng. Vui lòng chọn sản phẩm trước khi chọn khuyến mãi đơn hàng.",
+          helperText: "Mã khuyến mãi chỉ áp dụng cho sản phẩm được gắn mã đó. Nếu sản phẩm đã có giảm giá trực tiếp, mã khuyến mãi sẽ giảm thêm trên giá đã giảm.",
         },
         { name: "trangThai", label: "Trạng thái" },
       ],
@@ -269,7 +295,7 @@ export const useManagementForms = ({
             maKhachHang: fieldValue(order.maKhachHang),
             maSanPham: "",
             soLuong: "1",
-            maKhuyenMai: order.hasProductDiscount ? "" : fieldValue(order.maKhuyenMai),
+            maKhuyenMai: fieldValue(order.maKhuyenMai),
             trangThai: fieldValue(order.trangThai),
           },
       onSubmit: async (values) => {

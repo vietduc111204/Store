@@ -4,12 +4,17 @@ import { createCrudHandlers } from './crudController.js';
 const productConfig = {
   table: 'SanPham',
   pk: 'maSanPham',
-  columns: ['tenSanPham', 'gia', 'soLuong', 'anh', 'anhPhu', 'maDanhMuc', 'thongSoKyThuat'],
+  columns: ['tenSanPham', 'gia', 'soLuong', 'anh', 'anhPhu', 'maDanhMuc', 'thongSoKyThuat', 'giamGia', 'ngayBatDauGiam', 'ngayKetThucGiam'],
   required: ['tenSanPham', 'gia', 'soLuong'],
   search: ['tenSanPham'],
   orderBy: 'maSanPham',
   listSelect:
-    's.*, d."tenDanhMuc", k."tenKhuyenMai", k."ngayBatDau", k."ngayKetThuc", case when k."maKhuyenMai" is not null and (k."ngayBatDau" is null or k."ngayBatDau" <= current_date) and (k."ngayKetThuc" is null or k."ngayKetThuc" >= current_date) then k."phanTramGiam" else 0 end as "phanTramGiam"',
+    's.*, d."tenDanhMuc", k."tenKhuyenMai",' +
+    ' s."ngayBatDauGiam" as "ngayBatDau", s."ngayKetThucGiam" as "ngayKetThuc",' +
+    ' case when coalesce(s."giamGia", 0) > 0' +
+    '   and (s."ngayBatDauGiam" is null or s."ngayBatDauGiam" <= current_date)' +
+    '   and (s."ngayKetThucGiam" is null or s."ngayKetThucGiam" >= current_date)' +
+    ' then s."giamGia" else 0 end as "phanTramGiam"',
   listFrom:
     '"SanPham" s left join "DanhMuc" d on d."maDanhMuc" = s."maDanhMuc" left join "KhuyenMai" k on k."maKhuyenMai" = s."maKhuyenMai"',
   alias: 's',
@@ -35,6 +40,15 @@ const validateProductNumbers = (body) => {
   if (Object.prototype.hasOwnProperty.call(body, 'gia')) {
     const price = Number(body.gia);
     if (!Number.isFinite(price) || price < 0) return 'Gia san pham phai la so khong am';
+  }
+
+  if (Object.prototype.hasOwnProperty.call(body, 'giamGia') && body.giamGia !== null && body.giamGia !== '') {
+    const discount = Number(body.giamGia);
+    if (!Number.isFinite(discount) || discount < 0 || discount > 100) return 'Phan tram giam phai tu 0 den 100';
+  }
+
+  if (body.ngayBatDauGiam && body.ngayKetThucGiam && body.ngayKetThucGiam < body.ngayBatDauGiam) {
+    return 'Ngay ket thuc giam gia khong duoc truoc ngay bat dau';
   }
 
   return null;

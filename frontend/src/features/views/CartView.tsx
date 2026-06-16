@@ -18,23 +18,25 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
   const [appliedPromo, setAppliedPromo] = useState<Promotion | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"bank" | "cod">("cod");
   const [form, setForm] = useState({ name: user?.tenThanhVien || "", phone: user?.soDienThoaiKhachHang || "", address: user?.diaChiKhachHang || "", city: "Hồ Chí Minh", district: "Quận 1" });
+  // Item is eligible for promo if product is linked to that promo code
   const isPromoItem = (item: CartItem) =>
-    !!appliedPromo &&
-    Number(item.product.maKhuyenMai) === Number(appliedPromo.maKhuyenMai) &&
-    Number(item.product.phanTramGiam || 0) > 0;
+    !!appliedPromo && Number(item.product.maKhuyenMai) === Number(appliedPromo.maKhuyenMai);
+  // Promo code gives additional discount on top of the already-discounted finalPrice
   const promoFinalPrice = (item: CartItem) =>
-    finalPrice(item.product) * (1 - Number(item.product.phanTramGiam || 0) / 100);
+    finalPrice(item.product) * (1 - Number(appliedPromo?.phanTramGiam || 0) / 100);
   const subtotal = cart.reduce((sum, item) => sum + finalPrice(item.product) * item.quantity, 0);
+  const promoPct = Number(appliedPromo?.phanTramGiam || 0);
   const discount = cart
     .filter(isPromoItem)
-    .reduce((sum, item) => sum + finalPrice(item.product) * (Number(item.product.phanTramGiam || 0) / 100) * item.quantity, 0);
+    .reduce((sum, item) => sum + finalPrice(item.product) * (promoPct / 100) * item.quantity, 0);
   const total = Math.max(0, subtotal - discount);
   const invalidStockItem = cart.find((item) => item.quantity > Math.max(0, Number(item.product.soLuong) || 0));
   const appliedPromoItemCount = appliedPromo
-    ? cart.filter((item) => Number(item.product.maKhuyenMai) === Number(appliedPromo.maKhuyenMai) && Number(item.product.phanTramGiam || 0) > 0).length
+    ? cart.filter((item) => Number(item.product.maKhuyenMai) === Number(appliedPromo.maKhuyenMai)).length
     : 0;
   const applicablePromotions = promotions.filter((promo) =>
-    cart.some((item) => Number(item.product.maKhuyenMai) === Number(promo.maKhuyenMai) && Number(item.product.phanTramGiam || 0) > 0)
+    Number(promo.phanTramGiam || 0) > 0 &&
+    cart.some((item) => Number(item.product.maKhuyenMai) === Number(promo.maKhuyenMai))
   );
 
   const applyPromo = () => {
@@ -45,7 +47,7 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
       return;
     }
     const eligibleItems = cart.filter(
-      (item) => Number(item.product.maKhuyenMai) === Number(found.maKhuyenMai) && Number(item.product.phanTramGiam || 0) > 0
+      (item) => Number(item.product.maKhuyenMai) === Number(found.maKhuyenMai)
     );
     if (!eligibleItems.length) {
       toast.error("Mã khuyến mãi không áp dụng cho sản phẩm trong giỏ hàng");
@@ -177,7 +179,7 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
           <h2 className="text-2xl font-black">Tổng đơn hàng</h2>
           <div className="mt-4 space-y-3">
             {cart.map((item) => {
-              const pct = Number(item.product.phanTramGiam || 0);
+              const directDiscountPct = Number(item.product.phanTramGiam || 0);
               const isItemPromo = isPromoItem(item);
               const displayPrice = isItemPromo ? promoFinalPrice(item) : finalPrice(item.product);
               return (
@@ -190,12 +192,12 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
                         <>
                           <span className="line-through">{formatMoney(finalPrice(item.product))}</span>
                           {" → "}
-                          <span className="font-bold text-red-600">{formatMoney(promoFinalPrice(item))}/sp <span className="whitespace-nowrap">(-{pct}% {promotionCodeText(appliedPromo!)})</span></span>
+                          <span className="font-bold text-red-600">{formatMoney(promoFinalPrice(item))}/sp <span className="whitespace-nowrap">(-{promoPct}% {promotionCodeText(appliedPromo!)})</span></span>
                         </>
                       ) : (
                         <>
                           {formatMoney(finalPrice(item.product))}/sp
-                          {pct > 0 && <span className="ml-1 font-bold text-slate-400">(-{pct}%)</span>}
+                          {directDiscountPct > 0 && <span className="ml-1 font-bold text-slate-400">(-{directDiscountPct}%)</span>}
                         </>
                       )}
                     </p>
@@ -218,7 +220,7 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
           </div>
           {appliedPromo ? (
             <p className="mt-3 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-[#075f83] ring-1 ring-sky-200">
-              Mã {promotionCodeText(appliedPromo)} áp dụng cho {appliedPromoItemCount} sản phẩm đang được giảm {Number(appliedPromo.phanTramGiam || 0)}%.
+              Mã {promotionCodeText(appliedPromo)} giảm thêm {promoPct}% cho {appliedPromoItemCount} sản phẩm phù hợp.
             </p>
           ) : null}
           {applicablePromotions.length ? (

@@ -58,6 +58,9 @@ export type Product = {
   ngayBatDau?: string | null;
   ngayKetThuc?: string | null;
   thongSoKyThuat?: string | null;
+  giamGia?: string | number | null;
+  ngayBatDauGiam?: string | null;
+  ngayKetThucGiam?: string | null;
 };
 
 export type Customer = {

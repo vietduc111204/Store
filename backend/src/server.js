@@ -33,9 +33,24 @@ app.get('/health', async (req, res) => {
   }
 });
 
+const applyMigrations = async () => {
+  try {
+    await pool.query(`
+      alter table "SanPham"
+        add column if not exists "giamGia" numeric default 0 check ("giamGia" >= 0 and "giamGia" <= 100),
+        add column if not exists "ngayBatDauGiam" date,
+        add column if not exists "ngayKetThucGiam" date
+    `);
+    console.log('Migrations applied');
+  } catch (error) {
+    console.error('Migration failed', error);
+  }
+};
+
 app.listen(PORT, async () => {
   try {
     await connectDB();
+    await applyMigrations();
   } catch (error) {
     console.error('DB connection failed', error);
   }
