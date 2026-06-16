@@ -156,8 +156,10 @@ export const useManagementForms = ({
           return;
         }
 
+        const productValues = { ...values };
+        delete productValues.maKhuyenMai;
         const payload = {
-          ...values,
+          ...productValues,
           anhPhu: normalizeMultilineText(values.anhPhu),
           thongSoKyThuat: normalizeMultilineText(values.thongSoKyThuat),
         };
