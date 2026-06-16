@@ -84,9 +84,6 @@ export const useManagementForms = ({
   const validCategoryValue = (maDanhMuc?: number | null) =>
     categories.some((category) => category.maDanhMuc === maDanhMuc) ? fieldValue(maDanhMuc) : "";
 
-  const validPromotionValue = (maKhuyenMai?: number | null) =>
-    promotions.some((promotion) => promotion.maKhuyenMai === maKhuyenMai) ? fieldValue(maKhuyenMai) : "";
-
   const filteredProducts =
     categoryFilter === "all"
       ? products
@@ -96,29 +93,6 @@ export const useManagementForms = ({
     toast.success(message);
     setModal(null);
     await reloadActiveView();
-  };
-
-  const selectedProductIds = (value?: string) =>
-    new Set(
-      String(value || "")
-        .split(",")
-        .map((item) => Number(item.trim()))
-        .filter((id) => Number.isInteger(id) && id > 0)
-    );
-
-  const syncPromotionProductAssignments = async (promotionId: number, selectedValue?: string) => {
-    const selected = selectedProductIds(selectedValue);
-    const affectedProducts = products.filter(
-      (product) => selected.has(product.maSanPham) || Number(product.maKhuyenMai) === Number(promotionId)
-    );
-
-    await Promise.all(
-      affectedProducts.map((product) =>
-        api.put(`/san-pham/sua/${product.maSanPham}`, {
-          maKhuyenMai: selected.has(product.maSanPham) ? String(promotionId) : "",
-        })
-      )
-    );
   };
 
   const removeRecord = async (url: string, message: string, onDeleted: () => void) => {
@@ -164,7 +138,6 @@ export const useManagementForms = ({
         { name: "anh", label: "Ảnh", type: "file" },
         { name: "anhPhu", label: "Ảnh phụ", type: "image-list" },
         { name: "maDanhMuc", label: "Danh mục", type: "select", options: categoryOptions.slice(1) },
-        { name: "maKhuyenMai", label: "Khuyến mãi", type: "select", options: promotionOptions },
         { name: "thongSoKyThuat", label: "Thông số kỹ thuật", type: "textarea" },
       ],
       values: {
@@ -174,7 +147,6 @@ export const useManagementForms = ({
         anh: fieldValue(product?.anh),
         anhPhu: imagesToText(product?.anhPhu),
         maDanhMuc: validCategoryValue(product?.maDanhMuc),
-        maKhuyenMai: validPromotionValue(product?.maKhuyenMai),
         thongSoKyThuat: specsToText(product?.thongSoKyThuat),
       },
       onSubmit: async (values) => {
@@ -369,11 +341,9 @@ export const useManagementForms = ({
           return;
         }
 
-        const res = mode === "create"
-          ? await api.post<Promotion>("/khuyen-mai/them", values)
-          : await api.put<Promotion>(`/khuyen-mai/sua/${promotion?.maKhuyenMai}`, values);
-        const promotionId = Number(res.data.maKhuyenMai || promotion?.maKhuyenMai);
-        if (promotionId) await syncPromotionProductAssignments(promotionId, values.maSanPhamApDung);
+        await (mode === "create"
+          ? api.post<Promotion>("/khuyen-mai/them", values)
+          : api.put<Promotion>(`/khuyen-mai/sua/${promotion?.maKhuyenMai}`, values));
         await saveAndReload("Đã lưu khuyến mãi");
       },
     });

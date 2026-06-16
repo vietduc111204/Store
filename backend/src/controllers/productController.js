@@ -4,7 +4,7 @@ import { createCrudHandlers } from './crudController.js';
 const productConfig = {
   table: 'SanPham',
   pk: 'maSanPham',
-  columns: ['tenSanPham', 'gia', 'soLuong', 'anh', 'anhPhu', 'maDanhMuc', 'maKhuyenMai', 'thongSoKyThuat'],
+  columns: ['tenSanPham', 'gia', 'soLuong', 'anh', 'anhPhu', 'maDanhMuc', 'thongSoKyThuat'],
   required: ['tenSanPham', 'gia', 'soLuong'],
   search: ['tenSanPham'],
   orderBy: 'maSanPham',
@@ -21,11 +21,6 @@ const validateProductRelations = async (body) => {
   if (body.maDanhMuc) {
     const category = await pool.query('select 1 from "DanhMuc" where "maDanhMuc" = $1', [body.maDanhMuc]);
     if (!category.rowCount) return 'Ma danh muc khong ton tai';
-  }
-
-  if (body.maKhuyenMai) {
-    const promotion = await pool.query('select 1 from "KhuyenMai" where "maKhuyenMai" = $1', [body.maKhuyenMai]);
-    if (!promotion.rowCount) return 'Ma khuyen mai khong ton tai';
   }
 
   return null;
