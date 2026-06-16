@@ -1,7 +1,8 @@
-import { X } from "lucide-react";
+import { Printer, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import api from "@/libs/axios";
+import { printInvoice } from "@/features/printInvoice";
 import type { Order, OrderDetail } from "@/types/management";
 import { DataShell, EmptyRow, formatMoney, PaginationFooter, Toolbar, usePaginatedRows } from "./shared";
 
@@ -133,13 +134,24 @@ const OrderDashboard = ({ orders, query, onQueryChange, onCreate, onEdit, onCanc
                   {detailOrder.tenThanhVien || `KH-${detailOrder.maKhachHang}`} - {formatMoney(detailOrder.tongGia)}
                 </p>
               </div>
-              <button
-                className="flex size-9 items-center justify-center rounded-lg hover:bg-slate-100"
-                onClick={() => setDetailOrder(null)}
-                type="button"
-              >
-                <X size={18} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  className="flex items-center gap-2 rounded-lg bg-sky-700 px-4 py-2 text-sm font-bold text-white hover:bg-sky-800 disabled:opacity-50"
+                  disabled={detailLoading || details.length === 0}
+                  onClick={() => printInvoice(detailOrder, details)}
+                  type="button"
+                >
+                  <Printer size={15} />
+                  In hóa đơn
+                </button>
+                <button
+                  className="flex size-9 items-center justify-center rounded-lg hover:bg-slate-100"
+                  onClick={() => setDetailOrder(null)}
+                  type="button"
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
 
             <div className="overflow-hidden rounded-lg border border-slate-200">
