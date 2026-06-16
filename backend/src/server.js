@@ -49,7 +49,9 @@ const applyMigrations = async () => {
         add column if not exists "tenPhuongXa" text,
         add column if not exists "maQuanHuyen" integer,
         add column if not exists "maPhuongXa" text,
-        add column if not exists "phiVanChuyen" numeric default 0
+        add column if not exists "phiVanChuyen" numeric default 0,
+        add column if not exists "phuongThucThanhToan" text,
+        add column if not exists "huyBoi" text
     `);
     await pool.query(`
       alter table "KhachHang"

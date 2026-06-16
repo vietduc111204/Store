@@ -37,6 +37,7 @@ const ManagementDashboard = ({ role }: { role: ManagementRole }) => {
     products,
     promotions,
     query,
+    role,
     removeLocalRecord,
     reloadActiveView,
     setCategoryFilter,

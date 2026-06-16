@@ -179,6 +179,7 @@ export const CartView = ({ cart, onClear, onQuantity, onRemove, promotions }: { 
         maKhachHang: user.maKhachHang,
         maKhuyenMai: appliedPromo?.maKhuyenMai || null,
         trangThai: paymentMethod === "bank" ? "Chờ thanh toán" : "Mới tạo",
+        phuongThucThanhToan: paymentMethod === "bank" ? "Chuyển khoản (PayOS)" : "COD",
         items: cart.map((item) => ({ maSanPham: item.product.maSanPham, soLuong: item.quantity })),
         diaChiGiaoHang: form.streetAddress,
         tenTinhThanh: selectedProvince?.ProvinceName || "",

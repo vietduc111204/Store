@@ -11,8 +11,8 @@ const CancelDetailDialog = ({
   onClose: () => void;
   order: CustomerOrder;
 }) => {
-  const requestBy = "Người mua";
-  const paymentMethod = "COD";
+  const requestBy = order.huyBoi || "Người mua";
+  const paymentMethod = order.phuongThucThanhToan || "COD";
   const orderCode = `DH-${order.maDonHang}`;
 
   return (

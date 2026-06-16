@@ -8,6 +8,7 @@ import type {
   Employee,
   FormMode,
   FormValues,
+  ManagementRole,
   ModalState,
   Order,
   Product,
@@ -23,6 +24,7 @@ type UseManagementFormsParams = {
   categoryFilter: string;
   customers: Customer[];
   products: Product[];
+  role?: ManagementRole;
   promotions: Promotion[];
   query: string;
   removeLocalRecord: (collection: CollectionKey, id: number) => void;
@@ -38,6 +40,7 @@ export const useManagementForms = ({
   products,
   promotions,
   query,
+  role,
   removeLocalRecord,
   reloadActiveView,
   setCategoryFilter,
@@ -384,7 +387,8 @@ export const useManagementForms = ({
   };
 
   const cancelOrder = async (order: Order) => {
-    await api.patch(`/don-hang/huy/${order.maDonHang}`);
+    const huyBoi = role === "quan_ly" ? "Quản lý" : "Nhân viên";
+    await api.patch(`/don-hang/huy/${order.maDonHang}`, { huyBoi });
     toast.success("Đã hủy đơn hàng");
     await reloadActiveView();
   };

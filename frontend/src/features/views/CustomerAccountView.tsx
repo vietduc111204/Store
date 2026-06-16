@@ -228,7 +228,7 @@ export const CustomerAccountView = () => {
     setOrderTab("cancelled");
 
     try {
-      const res = await api.patch<CustomerOrder>(`/don-hang/huy/${order.maDonHang}`);
+      const res = await api.patch<CustomerOrder>(`/don-hang/huy/${order.maDonHang}`, { huyBoi: "Người mua" });
       setOrders((current) =>
         current.map((item) => item.maDonHang === order.maDonHang ? { ...item, ...res.data, trangThai: res.data.trangThai || "Đã hủy" } : item)
       );

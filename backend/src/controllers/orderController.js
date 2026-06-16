@@ -5,7 +5,7 @@ import { createCrudHandlers } from './crudController.js';
 const orderConfig = {
   table: 'DonHang',
   pk: 'maDonHang',
-  columns: ['tongGia', 'trangThai', 'maKhachHang', 'maKhuyenMai', 'diaChiGiaoHang', 'tenTinhThanh', 'tenQuanHuyen', 'tenPhuongXa', 'maQuanHuyen', 'maPhuongXa', 'phiVanChuyen'],
+  columns: ['tongGia', 'trangThai', 'maKhachHang', 'maKhuyenMai', 'diaChiGiaoHang', 'tenTinhThanh', 'tenQuanHuyen', 'tenPhuongXa', 'maQuanHuyen', 'maPhuongXa', 'phiVanChuyen', 'phuongThucThanhToan', 'huyBoi'],
   required: ['tongGia', 'maKhachHang'],
   search: ['trangThai'],
   orderBy: 'maDonHang',
@@ -209,8 +209,8 @@ export const createOrder = async (req, res) => {
       `insert into "DonHang"
         ("tongGia", "trangThai", "maKhachHang", "maKhuyenMai",
          "diaChiGiaoHang", "tenTinhThanh", "tenQuanHuyen", "tenPhuongXa",
-         "maQuanHuyen", "maPhuongXa", "phiVanChuyen")
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) returning *`,
+         "maQuanHuyen", "maPhuongXa", "phiVanChuyen", "phuongThucThanhToan")
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) returning *`,
       [
         tongGia,
         req.body.trangThai || 'Mới tạo',
@@ -223,6 +223,7 @@ export const createOrder = async (req, res) => {
         req.body.maQuanHuyen || null,
         req.body.maPhuongXa || null,
         phiVanChuyen,
+        req.body.phuongThucThanhToan || null,
       ]
     );
 
@@ -352,9 +353,10 @@ export const cancelOrder = async (req, res) => {
       await restoreOrderStock(client, req.params.id);
     }
 
+    const huyBoi = req.body?.huyBoi || 'Người mua';
     const result = await client.query(
-      'update "DonHang" set "trangThai" = $1 where "maDonHang" = $2 returning *',
-      [CANCELLED_STATUS, req.params.id]
+      'update "DonHang" set "trangThai" = $1, "huyBoi" = $2 where "maDonHang" = $3 returning *',
+      [CANCELLED_STATUS, huyBoi, req.params.id]
     );
 
     await client.query('commit');

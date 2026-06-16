@@ -49,6 +49,8 @@ export type CustomerOrder = {
   updatedAt?: string | null;
   cancelledAt?: string | null;
   thoiGian?: string | null;
+  phuongThucThanhToan?: string | null;
+  huyBoi?: string | null;
 };
 
 export type CustomerOrderDetail = {
