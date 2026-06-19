@@ -260,6 +260,16 @@ export const useManagementForms = ({
     });
   };
 
+  const orderStatusOptions = [
+    { label: "Mới tạo", value: "Mới tạo" },
+    { label: "Chờ thanh toán", value: "Chờ thanh toán" },
+    { label: "Đã thanh toán", value: "Đã thanh toán" },
+    { label: "Đang xử lý", value: "Đang xử lý" },
+    { label: "Đang giao", value: "Đang giao" },
+    { label: "Hoàn thành", value: "Hoàn thành" },
+    { label: "Đã hủy", value: "Đã hủy" },
+  ];
+
   const openOrderForm = (order?: Order) => {
     const isCreate = !order;
     setModal({
@@ -290,7 +300,7 @@ export const useManagementForms = ({
           options: promotionOptions,
           helperText: "Mã khuyến mãi chỉ áp dụng cho sản phẩm được gắn mã đó. Nếu sản phẩm đã có giảm giá trực tiếp, mã khuyến mãi sẽ giảm thêm trên giá đã giảm.",
         },
-        { name: "trangThai", label: "Trạng thái" },
+        { name: "trangThai", label: "Trạng thái", type: "select", options: orderStatusOptions },
       ],
       values: isCreate
         ? { maKhachHang: "", maSanPham: "", soLuong: "1", maKhuyenMai: "", trangThai: "Mới tạo" }

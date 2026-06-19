@@ -32,6 +32,15 @@ const orderDetailConfig = {
 const orderHandlers = createCrudHandlers(orderConfig, 'Order');
 const orderDetailHandlers = createCrudHandlers(orderDetailConfig, 'Order detail');
 const CANCELLED_STATUS = 'Đã hủy';
+const VALID_ORDER_STATUSES = [
+  'Mới tạo',
+  'Chờ thanh toán',
+  'Đã thanh toán',
+  'Đang xử lý',
+  'Đang giao',
+  'Hoàn thành',
+  CANCELLED_STATUS,
+];
 
 export const listOrders = orderHandlers.list;
 export const getOrderById = orderHandlers.getById;
@@ -261,13 +270,22 @@ export const updateOrder = async (req, res) => {
   const client = await pool.connect();
 
   try {
-    const maKhuyenMai = req.body.maKhuyenMai || null;
-
     const columns = ['tongGia', 'trangThai', 'maKhachHang', 'maKhuyenMai'].filter((column) =>
       Object.prototype.hasOwnProperty.call(req.body, column)
     );
 
     if (!columns.length) return res.status(400).json({ message: 'Không có dữ liệu cập nhật' });
+
+    if (columns.includes('trangThai') && !VALID_ORDER_STATUSES.includes(req.body.trangThai)) {
+      return res.status(400).json({ message: 'Trạng thái đơn hàng không hợp lệ' });
+    }
+
+    if (columns.includes('tongGia')) {
+      const tongGia = Number(req.body.tongGia);
+      if (!Number.isFinite(tongGia) || tongGia < 0) {
+        return res.status(400).json({ message: 'Tổng giá không hợp lệ' });
+      }
+    }
 
     const values = columns.map((column) => (req.body[column] === '' ? null : req.body[column]));
     const setSql = columns.map((column, index) => `"${column}" = $${index + 1}`).join(', ');
